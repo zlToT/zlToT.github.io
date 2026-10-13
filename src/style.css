@@ -1,0 +1,203 @@
+/* ============================================================
+   zlToT 个人作品集 · 全局样式
+   设计系统：系统 D · bailidashi 参考站原色系（浅绿玻璃）
+   全色值照搬 https://bailidashi.github.io/index.html 的 CSS 变量
+   ============================================================ */
+
+:root {
+  /* 参考站变量原样映射 */
+  --primary: #2f855a;            /* 主绿 green-accent */
+  --primary-soft: #57b68c;       /* 浅绿 green-light */
+  --primary-deep: #1e4a2f;       /* 标题渐变暗端 rgb(30,74,47) */
+  --primary-tint: rgba(60, 100, 70, 0.15);  /* tag 底（参考站 .tag-depth） */
+  --primary-pale: #a8d5c0;       /* 浅薄荷（点缀） */
+  --accent: #2f855a;             /* active 底 / 按钮底 */
+  --accent-soft: #57b68c;
+  --bg-cream: #e8f3ec;           /* 背景起点 bg-start */
+  --bg-light: #d4e8da;           /* 背景终点 bg-end */
+  --bg-deep: #d9e8dd;            /* Contact 压轴（稍深绿） */
+  --text-main: #1a2e24;          /* 深文字 text-dark */
+  --text-muted: #406653;         /* 弱文字 text-dim */
+  --text-faint: #6b8a76;         /* 更弱文字 */
+  --text-on-deep: #1a2e24;
+  --glass-bg: rgba(235, 248, 235, 0.65);   /* 玻璃底 glass-base */
+  --glass-bg-strong: rgba(230, 245, 230, 0.85);
+  --glass-border: rgba(80, 120, 90, 0.18); /* 玻璃边 glass-edge */
+  --shadow-soft: 0 8px 28px rgba(30, 60, 40, 0.12);   /* 绿调阴影 */
+  --shadow-card: 0 4px 20px rgba(30, 60, 40, 0.1);
+  --radius-lg: 24px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --sidenav-width: 280px;
+  --content-max: 1220px;
+  --nav-h: 104px;                /* 移动端顶部导航高度（头像行 + 按钮行） */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-h) + 12px);
+  /* 全屏翻页：每次滚动吸附到板块 */
+  scroll-snap-type: y mandatory;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-main);
+  /* 参考站 body 原样：椭圆径向渐变背景 */
+  background: radial-gradient(ellipse at 30% 40%, var(--bg-cream), var(--bg-light));
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* 全局光晕背景（参考站 body::before 原样） */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(87, 182, 108, 0.12), transparent 60%),
+    radial-gradient(circle at 85% 70%, rgba(125, 207, 166, 0.1), transparent 70%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* 浅绿玻璃卡片（参考站 glass-base + glass-edge，hover 变主绿描边） */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+.glass:hover {
+  box-shadow: 0 10px 30px rgba(47, 133, 90, 0.18);
+  border-color: rgba(47, 133, 90, 0.35);
+}
+
+/* ============ 板块通用 ============ */
+/* 每个导航板块至少占一屏，滚动吸附；统一浅绿背景（与技能页一致），透出光晕 */
+.section {
+  position: relative;
+  min-height: 100vh;
+  scroll-snap-align: start;
+  padding: 80px 0 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.main-content > .section {
+  background: rgba(212, 232, 218, 0.9);
+}
+.section-inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 32px;
+  width: 100%;
+}
+
+/* 板块眉标 + 标题 */
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--primary);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.section-eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-soft));
+}
+.section-title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+.section-desc {
+  color: var(--text-muted);
+  font-size: 15px;
+  max-width: 640px;
+}
+
+/* 渐变标题（参考站 page-title：深绿→主绿 135deg） */
+.grad-text {
+  background: linear-gradient(135deg, var(--primary-deep), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 主内容区 */
+.main-content {
+  min-height: 100vh;
+}
+
+/* 页脚 */
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 20px 40px;
+  font-size: 13px;
+  color: var(--text-faint);
+  background: transparent;
+}
+.footer-sep {
+  opacity: 0.5;
+}
+
+/* ============ 响应式 ============ */
+@media (min-width: 768px) {
+  .main-content {
+    margin-left: var(--sidenav-width);
+  }
+  html {
+    scroll-padding-top: 0;
+  }
+  .section {
+    padding: 72px 0 56px;
+  }
+}
+
+@media (max-width: 767px) {
+  /* 移动端：内容保持一屏感，顶部导航占位 */
+  .section {
+    padding: calc(var(--nav-h) + 48px) 0 48px;
+    min-height: calc(100vh - var(--nav-h));
+  }
+  html {
+    scroll-padding-top: calc(var(--nav-h) + 8px);
+  }
+}
