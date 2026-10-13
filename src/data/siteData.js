@@ -53,6 +53,7 @@ export const siteCategories = [
 
 // 有趣网站列表（新增收藏：在此数组加一条，category 用上方分类 key）
 export const sites = [
+  // ── 开发 ──
   {
     name: 'GitHub',
     desc: '全球最大的代码托管平台，开源项目聚集地',
@@ -60,23 +61,191 @@ export const sites = [
     category: 'dev',
   },
   {
+    name: 'Vercel',
+    desc: '前端部署与全球 CDN，一键发布静态站点',
+    link: 'https://vercel.com',
+    category: 'dev',
+  },
+  {
+    name: 'Cocos 引擎',
+    desc: '跨平台游戏开发引擎，原生性能强大',
+    link: 'https://www.cocos.com/',
+    category: 'dev',
+  },
+  {
+    name: 'Egret 引擎',
+    desc: 'H5 游戏引擎，TypeScript 开发利器',
+    link: 'https://www.egret.uk/',
+    category: 'dev',
+  },
+  {
+    name: '微信开放文档',
+    desc: '小程序 / 公众号开发官方文档',
+    link: 'https://developers.weixin.qq.com/doc/',
+    category: 'dev',
+  },
+  {
+    name: 'TypeScript 中文',
+    desc: 'TypeScript 中文权威文档',
+    link: 'https://www.tslang.cn/docs/home.html',
+    category: 'dev',
+  },
+  {
+    name: 'Vue 中文',
+    desc: '渐进式前端框架官方文档',
+    link: 'https://cn.vuejs.org/',
+    category: 'dev',
+  },
+  {
+    name: 'Element UI',
+    desc: '基于 Vue 的桌面端组件库',
+    link: 'https://element.eleme.cn/#/zh-CN/',
+    category: 'dev',
+  },
+  {
+    name: 'Bootstrap 中文',
+    desc: '主流 CSS 响应式框架',
+    link: 'https://www.bootcss.com/',
+    category: 'dev',
+  },
+  {
+    name: 'Swiper',
+    desc: '现代触摸滑动轮播组件',
+    link: 'https://www.swiper.com.cn/',
+    category: 'dev',
+  },
+  {
+    name: 'htmleaf',
+    desc: 'HTML5 特效与前端插件资源集合',
+    link: 'http://www.htmleaf.com/',
+    category: 'dev',
+  },
+  {
+    name: 'Node.js 中文',
+    desc: 'Node.js 中文文档',
+    link: 'https://nodejs.cn/',
+    category: 'dev',
+  },
+  {
+    name: 'npmmirror',
+    desc: 'npm 镜像站，加速依赖安装',
+    link: 'http://npmmirror.com/',
+    category: 'dev',
+  },
+  {
+    name: 'Jenkins 中文',
+    desc: '自动化构建与持续集成工具',
+    link: 'https://www.jenkins.io/zh/',
+    category: 'dev',
+  },
+  {
+    name: 'Gitee',
+    desc: '国内代码托管与协作平台',
+    link: 'https://gitee.com/',
+    category: 'dev',
+  },
+  {
+    name: 'GitCode',
+    desc: '开源代码托管与协作社区',
+    link: 'https://gitcode.com/',
+    category: 'dev',
+  },
+  {
+    name: '印记中文',
+    desc: '优质前端技术文档中文翻译',
+    link: 'https://docschina.org/',
+    category: 'dev',
+  },
+  {
+    name: 'PyPI',
+    desc: 'Python 官方包仓库',
+    link: 'https://pypi.org/',
+    category: 'dev',
+  },
+
+  // ── 学习 ──
+  {
     name: 'MDN Web Docs',
     desc: '权威的 Web 开发文档，前端必查手册',
     link: 'https://developer.mozilla.org/zh-CN/',
     category: 'learn',
   },
   {
-    name: 'Stack Overflow',
-    desc: '程序员问答社区，报错搜索第一站',
-    link: 'https://stackoverflow.com',
+    name: 'CSDN',
+    desc: '中文 IT 技术社区与博客',
+    link: 'https://www.csdn.net/',
     category: 'learn',
   },
   {
-    name: 'Vercel',
-    desc: '前端部署与全球 CDN，一键发布静态站点',
-    link: 'https://vercel.com',
-    category: 'dev',
+    name: 'Python 文档',
+    desc: '权威 Python 标准库中文文档',
+    link: 'https://docs.python.org/zh-cn/3/library/index.html',
+    category: 'learn',
   },
+  {
+    name: '网道',
+    desc: '阮一峰的网络开发文档合集',
+    link: 'https://wangdoc.com/',
+    category: 'learn',
+  },
+  {
+    name: '菜鸟教程',
+    desc: '新手入门编程教程，通俗易懂',
+    link: 'https://www.runoob.com/',
+    category: 'learn',
+  },
+  {
+    name: 'C语言中文网',
+    desc: '编程语言教程网站，实例丰富',
+    link: 'http://c.biancheng.net/',
+    category: 'learn',
+  },
+  {
+    name: 'W3Cschool',
+    desc: '前端与编程技能教程平台',
+    link: 'https://www.w3cschool.cn/',
+    category: 'learn',
+  },
+
+  // ── 效率工具 ──
+  {
+    name: 'TinyPNG',
+    desc: '图片无损压缩，网页图片瘦身神器',
+    link: 'https://tinypng.com',
+    category: 'tool',
+  },
+  {
+    name: 'RegExr',
+    desc: '正则表达式在线测试与学习工具',
+    link: 'https://regexr.com',
+    category: 'tool',
+  },
+  {
+    name: '菜鸟工具',
+    desc: '在线小工具合集，编码转换计算',
+    link: 'https://www.jyshare.com/',
+    category: 'tool',
+  },
+  {
+    name: '在线工具',
+    desc: '程序员常用在线工具集合',
+    link: 'https://tool.lu/',
+    category: 'tool',
+  },
+  {
+    name: 'ProcessOn',
+    desc: '在线流程图与思维导图工具',
+    link: 'https://www.processon.com/',
+    category: 'tool',
+  },
+  {
+    name: '下载站',
+    desc: '软件与资源下载平台',
+    link: 'http://www.downza.cn/',
+    category: 'tool',
+  },
+
+  // ── 设计 ──
   {
     name: 'Canva',
     desc: '在线平面设计工具，海报卡片几分钟搞定',
@@ -90,28 +259,28 @@ export const sites = [
     category: 'design',
   },
   {
-    name: 'Tools',
-    desc: '各种工具集合',
-    link: 'https://tool.lu/',
-    category: 'tool',
+    name: 'iconfont 图标库',
+    desc: '阿里海量矢量图标库',
+    link: 'https://www.iconfont.cn/',
+    category: 'design',
   },
   {
-    name: '菜鸟工具',
-    desc: '各种工具集合',
-    link: 'https://www.jyshare.com/',
-    category: 'tool',
+    name: '51PPT模板',
+    desc: 'PPT 模板下载资源',
+    link: 'https://www.51pptmoban.com/ppt/',
+    category: 'design',
   },
   {
-    name: 'TinyPNG',
-    desc: '图片无损压缩，网页图片瘦身神器',
-    link: 'https://tinypng.com',
-    category: 'tool',
+    name: '爱给网',
+    desc: '2D 像素素材与游戏资源',
+    link: 'https://www.aigei.com/game2d/pixel/set/',
+    category: 'design',
   },
   {
-    name: 'RegExr',
-    desc: '正则表达式在线测试与学习工具',
-    link: 'https://regexr.com',
-    category: 'tool',
+    name: 'EffectHub',
+    desc: '粒子特效与视觉资源',
+    link: 'http://www.effecthub.com/particle2dx',
+    category: 'design',
   },
 ]
 
