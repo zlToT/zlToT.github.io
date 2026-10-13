@@ -145,26 +145,22 @@ zlToT.github.io-site
    git commit -m "提交网站完整源码"
    git push -u origin main
    ```
-6. 安装部署工具 gh-pages：`npm install gh-pages --save-dev`
-   并在 `package.json` scripts 添加：`"deploy": "gh-pages -d dist"`
-7. 打包 + 一键部署：`npm run build` + `npm run deploy`
-8. 仓库设置开启 Pages：Settings → Pages → Source 分支选 `gh-pages`，目录 `/ (root)`，等待上线
+6. **配置 GitHub Actions 自动部署（当前方案）**：已创建 `.github/workflows/deploy.yml`，监听 push main 分支自动执行 `npm ci → npm run build → 部署 dist 到 gh-pages 分支`（peaceiris/actions-gh-pages，`force_orphan` 每次重建）。GitHub Token 自动生成，无需额外配置
+7. **仓库设置开启 Pages**：Settings → Pages → Source 选 `gh-pages` 分支，目录 `/ (root)`（仅需首次手动设置一次）
+8. **验证上线**：push main 后约 1~3 分钟 Actions 完成，访问 `https://zlToT.github.io/`（已上线 ✓）
 
 ## 七、后续更新循环（新增游戏 / 修改内容）
 
 1. 本地修改代码
 2. `npm run dev` 本地预览验证
-3. 提交源码到 GitHub：
+3. 提交源码到 GitHub（**配了 Actions 后，push 即自动更新线上**，无需手动 build/deploy）：
    ```
    git add .
    git commit -m "更新内容描述"
    git push
    ```
-4. 打包并更新线上站点：
-   ```
-   npm run build
-   npm run deploy
-   ```
+4. 等约 1~3 分钟，线上 `https://zlToT.github.io/` 自动更新；可在 GitHub 仓库 **Actions** 页查看构建日志
+   - 说明：手动 `npm run build` + `npm run deploy` 方式已废弃（会被 Actions 的 `force_orphan` 覆盖冲突），统一走 Actions
 
 ## 八、硬性约束
 
