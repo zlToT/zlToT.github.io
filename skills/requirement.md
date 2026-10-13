@@ -1,13 +1,12 @@
 ---
 name: zltot-website
-description: zlToT 个人作品集网站（Vue3 + Vite + GitHub Pages）的完整需求规范与开发部署流程。当用户要求开发、修改、新增小游戏或部署该网站时使用。当我修改需求的时候，也一并优化skills/requirement.md文件。
+description: zlToT 个人作品集网站（Vue3 + Vite + GitHub Pages）的完整功能需求规范。当用户要求开发、修改、新增小游戏或调整网站功能时使用。部署与发布流程见 skills/deploy.md。当我修改需求的时候，也一并优化 skills/requirement.md 文件。
 ---
 ## 项目概况
 
 - 项目名称：zlToT 个人作品集站点
 - 技术栈：Vue3 + Vite，纯静态网站，无后端、无数据库
-- 部署目标：GitHub Pages，访问地址 `https://zlToT.github.io`
-- 仓库：`zlToT.github.io`，完整源码上传仓库，他人仅可查看、无法修改
+- 部署流程见独立文档 `skills/deploy.md`（GitHub Pages + Actions 自动部署）
 
 ## 一、导航栏需求
 
@@ -81,7 +80,7 @@ description: zlToT 个人作品集网站（Vue3 + Vite + GitHub Pages）的完�
 ```
 zlToT.github.io-site
 ├── index.html                 # 入口页面
-├── design-color.md            # 视觉设计 skill 文档
+├── .github/workflows/deploy.yml # GitHub Actions 自动部署（见 skills/deploy.md）
 ├── package.json
 ├── vite.config.js             # base 设为 './'，兼容 GitHub Pages
 ├── public
@@ -126,44 +125,3 @@ zlToT.github.io-site
 - 改色入口：优先改 `src/style.css` 的 CSS 变量 token，组件内引用 `var(--xxx)` 自动跟随；独立小游戏页（`public/games/*.html`）颜色需单独替换
 - **改版史**：v1 小清新（系统 A）→ v2 南孚深蓝（系统 B）→ v3 墨绿荧光绿（系统 B，浅底）→ v4 暗黑荧光绿（系统 C，用户不满意）→ v5 暗黑+参考绿（系统 C 更新，用户不满意）→ **v6 系统 D 治愈系（浅绿玻璃，全色值照搬参考站，当前）**
 
-## 六、部署流程
-
-1. **创建 GitHub 仓库**：仓库名 `zlToT.github.io`，Public，.gitignore 选 Node
-2. **本地初始化项目**：
-   ```
-   npm create vite@latest zlToT.github.io-site -- --template vue
-   cd zlToT.github.io-site
-   npm install
-   ```
-3. 替换全套组件代码，实现导航、五大板块、交互逻辑
-4. 本地预览调试：`npm run dev`
-5. **推送完整源码到 GitHub**：
-   ```
-   git init
-   git remote add origin https://github.com/zlToT/zlToT.github.io.git
-   git add .
-   git commit -m "提交网站完整源码"
-   git push -u origin main
-   ```
-6. **配置 GitHub Actions 自动部署（当前方案）**：已创建 `.github/workflows/deploy.yml`，监听 push main 分支自动执行 `npm ci → npm run build → 部署 dist 到 gh-pages 分支`（peaceiris/actions-gh-pages，`force_orphan` 每次重建）。GitHub Token 自动生成，无需额外配置
-7. **仓库设置开启 Pages**：Settings → Pages → Source 选 `gh-pages` 分支，目录 `/ (root)`（仅需首次手动设置一次）
-8. **验证上线**：push main 后约 1~3 分钟 Actions 完成，访问 `https://zlToT.github.io/`（已上线 ✓）
-
-## 七、后续更新循环（新增游戏 / 修改内容）
-
-1. 本地修改代码
-2. `npm run dev` 本地预览验证
-3. 提交源码到 GitHub（**配了 Actions 后，push 即自动更新线上**，无需手动 build/deploy）：
-   ```
-   git add .
-   git commit -m "更新内容描述"
-   git push
-   ```
-4. 等约 1~3 分钟，线上 `https://zlToT.github.io/` 自动更新；可在 GitHub 仓库 **Actions** 页查看构建日志
-   - 说明：手动 `npm run build` + `npm run deploy` 方式已废弃（会被 Actions 的 `force_orphan` 覆盖冲突），统一走 Actions
-
-## 八、硬性约束
-
-1. 纯静态资源，**不包含后端、数据库、服务端接口**
-2. 完整源码上传 main 分支；打包产物自动推送到 gh-pages 分支用于网页访问
-3. 仓库为 Public：其他人仅可查看、Fork，**不能直接修改代码**
