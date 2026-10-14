@@ -40,6 +40,13 @@ export const games = [
     icon: 'memory',
     tag: '记忆',
   },
+  {
+    name: '拼消块',
+    desc: '点一下方块升一级，凑齐三个同色连通块消除，掉落补满还能连锁',
+    link: 'https://zlToT.github.io/Blocks/',
+    icon: 'blocks',
+    tag: '消除',
+  },
 ]
 
 // 有趣网站分类（分类 key 与站点记录的 category 对应）
