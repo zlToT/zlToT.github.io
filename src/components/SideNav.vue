@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import avatar from '../assets/头像.jpg'
+import BgEffect from './BgEffect.vue'
 
 // 导航配置：id 对应页面锚点板块
 const navItems = [
@@ -68,6 +69,7 @@ onBeforeUnmount(() => {
 <template>
   <!-- 桌面端：左侧固定导航 -->
   <nav class="side-nav" aria-label="主导航">
+    <BgEffect type="rain" />
     <div class="nav-logo">
       <img class="logo-avatar" :src="avatar" alt="zlToT 头像" />
       <div class="logo-texts">
@@ -165,6 +167,8 @@ onBeforeUnmount(() => {
 }
 /* logo 区：头像 + 名字 */
 .nav-logo {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -195,6 +199,8 @@ onBeforeUnmount(() => {
   line-height: 1.1;
 }
 .nav-list {
+  position: relative;
+  z-index: 1;
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -235,6 +241,8 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, var(--primary-soft), var(--primary-pale));
 }
 .nav-footer {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;

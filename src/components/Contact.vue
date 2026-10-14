@@ -1,9 +1,11 @@
 <script setup>
 import { contact } from '../data/siteData.js'
+import BgEffect from './BgEffect.vue'
 </script>
 
 <template>
   <section id="contact" class="section contact">
+    <BgEffect type="firefly" />
     <div class="section-inner">
       <p class="section-eyebrow">Contact</p>
       <h2 class="section-title">联系方式</h2>
@@ -73,6 +75,7 @@ import { contact } from '../data/siteData.js'
 <style scoped>
 /* 浅绿底压轴：覆盖全局双色交替背景（轻量版深底） */
 .contact {
+  position: relative;
   background: var(--bg-deep) !important;
   color: var(--text-on-deep);
 }

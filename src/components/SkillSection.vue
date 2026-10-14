@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import BgEffect from './BgEffect.vue'
 
 // 技能板块：默认隐藏，点击开关按钮展开 / 收起（面试场景手动打开）
 // 内容来源：周龙简历（提炼总结关键信息）
@@ -101,6 +102,7 @@ const projects = [
 
 <template>
   <section id="skill" class="section skill">
+    <BgEffect type="snow" />
     <div class="section-inner">
       <div class="section-head-row">
         <div>
@@ -207,6 +209,9 @@ const projects = [
 </template>
 
 <style scoped>
+.skill {
+  position: relative;
+}
 .section-head-row {
   display: flex;
   flex-wrap: wrap;
