@@ -32,13 +32,15 @@ function scrollTo(id) {
 }
 
 // 滚动监听：高亮当前可见板块
+// 取"顶部越过视口 35% 线"的最后一个板块，避免吸附/惯性滚动时多板块同时命中导致来回跳
 function onScroll() {
+  const marker = window.innerHeight * 0.35
   let current = navItems[0].id
   for (const item of navItems) {
     const el = document.getElementById(item.id)
     if (el) {
       const rect = el.getBoundingClientRect()
-      if (rect.top <= 180 && rect.bottom > 140) {
+      if (rect.top <= marker) {
         current = item.id
       }
     }

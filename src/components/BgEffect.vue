@@ -19,6 +19,8 @@ let particles = []
 let drops = []
 let dust = []
 let stars = []
+let visible = true
+let io = null
 
 // 流星色板：头部银白高光 / 中段清透蓝青 / 过渡淡紫蓝 / 尾端透明，星尘继承同色系
 const TINTS = [
@@ -119,13 +121,17 @@ function init() {
       })
     }
   } else if (t === 'rain') {
-    drops = new Array(16).fill(0).map(() => spawnMeteor(true))
+    // 手机屏窄，减半流星数量，省 GPU
+    const dropCount = w < 768 ? 8 : 16
+    drops = new Array(dropCount).fill(0).map(() => spawnMeteor(true))
     dust = []
     initStars()
   }
 }
 
 function draw(now) {
+  // 不在视口就停帧，省手机电量和滚动性能
+  if (!visible) { raf = 0; return }
   ctx.clearRect(0, 0, w, h)
   const t = props.type
 
@@ -258,9 +264,21 @@ onMounted(() => {
   resize()
   window.addEventListener('resize', resize)
   raf = requestAnimationFrame(draw)
+  // 离开视口暂停动画，回到视口再继续
+  const host = canvas.value.parentElement
+  io = new IntersectionObserver(
+    (entries) => {
+      visible = entries[0].isIntersecting
+      if (visible && !raf) raf = requestAnimationFrame(draw)
+    },
+    { threshold: 0 }
+  )
+  io.observe(host)
 })
 onBeforeUnmount(() => {
   cancelAnimationFrame(rAF_placeholder())
+  raf = 0
+  io && io.disconnect()
   window.removeEventListener('resize', resize)
 })
 function rAF_placeholder() { return raf }

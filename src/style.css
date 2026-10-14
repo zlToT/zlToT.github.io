@@ -42,8 +42,7 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--nav-h) + 12px);
-  /* 全屏翻页：每次滚动吸附到板块 */
-  scroll-snap-type: y mandatory;
+  /* 移动端不做强制翻页吸附，交给原生滚动，手感最跟手 */
 }
 
 body {
@@ -188,6 +187,8 @@ button {
   }
   html {
     scroll-padding-top: 0;
+    /* 桌面端保留全屏翻页吸附 */
+    scroll-snap-type: y mandatory;
   }
   .section {
     padding: 72px 0 56px;
