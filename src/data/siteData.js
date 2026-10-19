@@ -6,6 +6,27 @@
 // 小游戏列表（新增游戏：1. 把静态文件放入 games/ 目录；2. 在此数组加一条）
 export const games = [
   {
+    name: '凡人·秘境苟道',
+    desc: 'pc修仙题材割草，青元剑诀/噬金虫/九霄神雷，五关Boss战',
+    link: 'https://zlToT.github.io/fanren-game/',
+    icon: 'fanren',
+    tag: '割草',
+  },
+  {
+    name: '拼消块',
+    desc: '点一下方块升一级，凑齐三个同色连通块消除，掉落补满还能连锁',
+    link: 'https://zlToT.github.io/Blocks/',
+    icon: 'blocks',
+    tag: '消除',
+  },
+  {
+    name: '记忆翻牌',
+    desc: '翻开卡片找配对，考验记忆力的时候到了',
+    link: './games/memory.html',
+    icon: 'memory',
+    tag: '记忆',
+  },
+  {
     name: '贪吃蛇',
     desc: '经典方向控制，吃食物变长，别撞墙也别咬到自己',
     link: './games/snake.html',
@@ -32,20 +53,6 @@ export const games = [
     link: './games/2048.html',
     icon: 'tile',
     tag: '益智',
-  },
-  {
-    name: '记忆翻牌',
-    desc: '翻开卡片找配对，考验记忆力的时候到了',
-    link: './games/memory.html',
-    icon: 'memory',
-    tag: '记忆',
-  },
-  {
-    name: '拼消块',
-    desc: '点一下方块升一级，凑齐三个同色连通块消除，掉落补满还能连锁',
-    link: 'https://zlToT.github.io/Blocks/',
-    icon: 'blocks',
-    tag: '消除',
   },
 ]
 

@@ -83,6 +83,22 @@ description: zlToT 个人作品集网站（Vue3 + Vite + GitHub Pages）的完�
    2. 在主页小游戏列表配置数组（`src/data/siteData.js` 的 `games`）新增一条卡片信息（名称、简介、链接、icon key）
    3. 若用新 icon key，在 `GameList.vue` 的 `gameEmoji` map 补 emoji，并按需加 `tone-` 渐变底；本地预览，提交源码，打包部署
 
+## 三-附、《凡人·秘境苟道》游戏（Vite 工程，非单文件HTML）
+
+- 工程位置：`D:\Work\site\fanren-game\`（与本仓库同级，非 `public/games/` 下源码）
+- 技术栈：Vite + PIXI.js 7.4.2（npm 安装，不走 CDN），ES Modules 拆分
+- 源码结构：
+  - `index.html` 入口
+  - `css/style.css` 样式
+  - `js/` 模块：state/config/audio/background/fx/weapons/projectiles/skills/enemy/player/ui/main
+  - `public/imgs/`、`public/audio/` 静态资源（构建时原样拷贝）
+- 构建命令（在 fanren-game 目录下）：
+  - `npm run dev` 本地开发调试
+  - `npm run build` 打包到 `dist/`
+  - `npm run deploy` 打包并复制 `dist/*` 到 `public/games/fanren/`（即本仓库的游戏目录）
+- 嵌入方式：`siteData.js` 中 link 为 `./games/fanren/index.html`，构建后自动可访问
+- 注意：fanren-game 是独立 npm 工程，不随主站 `npm run build` 自动打包；每次修改后需手动在 fanren-game 目录执行 `npm run deploy` 再提交主站
+
 ## 四、项目目录结构
 
 ```
@@ -99,7 +115,8 @@ zlToT.github.io-site
 │       ├── tetris.html        # 俄罗斯方块（深色粒子 + 🏆最高分 + 底部返回）
 │       ├── mole.html          # 打地鼠（深色沉浸 + emoji + 底部返回）
 │       ├── 2048.html          # 2048（深色沉浸 + emoji + 底部返回）
-│       └── memory.html        # 记忆翻牌（深色沉浸 + emoji + 底部返回）
+│       ├── memory.html        # 记忆翻牌（深色沉浸 + emoji + 底部返回）
+│       └── fanren/           # 凡人·秘境苟道（Vite 构建产物，独立工程源码在 ../fanren-game/）
 └── src
     ├── App.vue                # 主页面，组合所有板块
     ├── main.js
