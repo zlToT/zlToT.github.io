@@ -1,7 +1,6 @@
 <script setup>
 import SideNav from './components/SideNav.vue'
 import Welcome from './components/Welcome.vue'
-import SkillSection from './components/SkillSection.vue'
 import GameList from './components/GameList.vue'
 import SiteList from './components/SiteList.vue'
 import Contact from './components/Contact.vue'
@@ -11,7 +10,6 @@ import Contact from './components/Contact.vue'
   <SideNav />
   <main class="main-content">
     <Welcome />
-    <SkillSection />
     <GameList />
     <SiteList />
     <Contact />

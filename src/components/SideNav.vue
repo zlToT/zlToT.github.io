@@ -6,7 +6,6 @@ import BgEffect from './BgEffect.vue'
 // 导航配置：id 对应页面锚点板块
 const navItems = [
   { id: 'home', label: '首页', icon: 'home' },
-  { id: 'skill', label: '技能', icon: 'zap' },
   { id: 'games', label: '小游戏', icon: 'gamepad' },
   { id: 'sites', label: '有趣网站', icon: 'star' },
   { id: 'contact', label: '联系方式', icon: 'mail' },
@@ -17,7 +16,6 @@ const activeId = ref('home')
 // 图标：内联 SVG（stroke 风格，随文字颜色变化）
 const icons = {
   home: 'M3 10.5 12 3l9 7.5M5 9.5V21h5v-6h4v6h5V9.5',
-  zap: 'M13 2 4 14h6l-1 8 9-12h-6l1-8Z',
   gamepad: 'M6 10h4m-2-2v4m8-1v.01M17 13v.01M4 8h13a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-1.5a2 2 0 0 1-1.8-1.2l-.5-1A2 2 0 0 0 11.4 16H9.6a2 2 0 0 0-1.8 1.2l-.5 1A2 2 0 0 1 5.5 19H4a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z',
   star: 'M12 3l2.4 5.2 5.6.7-4.1 3.9 1 5.6-4.9-2.7-4.9 2.7 1-5.6L4.1 8.9l5.6-.7L12 3Z',
   mail: 'M3 6h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Zm0 2 7 4.5L17 8',

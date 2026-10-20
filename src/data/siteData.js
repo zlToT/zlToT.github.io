@@ -59,6 +59,7 @@ export const games = [
 // 有趣网站分类（分类 key 与站点记录的 category 对应）
 export const siteCategories = [
   { key: 'all', label: '全部' },
+  { key: 'ai', label: 'AI' },
   { key: 'dev', label: '开发' },
   { key: 'design', label: '设计' },
   { key: 'tool', label: '效率工具' },
@@ -67,11 +68,67 @@ export const siteCategories = [
 
 // 有趣网站列表（新增收藏：在此数组加一条，category 用上方分类 key）
 export const sites = [
+  // ── ai ──
+  {
+    name: 'Ollama 中文站',
+    desc: 'Ollama 的中文资源与文档，本地运行和管理大语言模型',
+    link: 'https://ollamacn.github.io/' ,
+    category: 'ai',
+  },
+  {
+    name: 'OpenAI Codex',
+    desc: 'OpenAI 的 AI 代码助手，基于大模型辅助编程与代码生成',
+    link: 'https://openai.com/zh-Hans-CN/codex/' ,
+    category: 'ai',
+  },
+  {
+    name: 'Work Buddy',
+    desc: 'AI 驱动的工作助手，提供智能任务管理与效率工具',
+    link: 'https://www.workbuddy.cn/' ,
+    category: 'ai',
+  },
+  {
+    name: 'ChatGLM',
+    desc: '智谱 AI 推出的中文大语言模型对话助手',
+    link: 'https://chatglm.cn/' ,
+    category: 'ai',
+  },
+  {
+    name: 'Coze Code',
+    desc: '字节跳动推出的 AI 代码开发平台，支持智能编程与协作',
+    link: 'https://code.coze.cn/' ,
+    category: 'ai',
+  },
+  {
+    name: '豆包',
+    desc: '字节跳动推出的 AI 对话助手与智能体，支持问答与任务处理',
+    link: 'https://www.doubao.com/' ,
+    category: 'ai',
+  },
+  {
+    name: 'Clawd',
+    desc: 'OpenClaw 中文社区 开源项目与社区，专注于 AI 模型与应用开发',
+    link: 'https://clawd.org.cn/' ,
+    category: 'ai',
+  },
+  {
+    name: 'ClawHub',
+    desc: 'AI 模型与工具集散地，提供模型分享、下载与协作功能',
+    link: 'https://clawhub.ai/' ,
+    category: 'ai',
+  },
+
   // ── 开发 ──
   {
     name: 'GitHub',
     desc: '全球最大的代码托管平台，开源项目聚集地',
     link: 'https://github.com',
+    category: 'dev',
+  },
+  {
+    name: 'Cloudflare Dashboard',
+    desc: '全球领先的云服务平台控制台，提供DNS、CDN、安全防护、边缘计算等一站式管理',
+    link: 'https://dash.cloudflare.com/' ,
     category: 'dev',
   },
   {
@@ -87,27 +144,9 @@ export const sites = [
     category: 'dev',
   },
   {
-    name: 'Egret 引擎',
-    desc: 'H5 游戏引擎，TypeScript 开发利器',
-    link: 'https://www.egret.uk/',
-    category: 'dev',
-  },
-  {
     name: '微信开放文档',
     desc: '小程序 / 公众号开发官方文档',
     link: 'https://developers.weixin.qq.com/doc/',
-    category: 'dev',
-  },
-  {
-    name: 'TypeScript 中文',
-    desc: 'TypeScript 中文权威文档',
-    link: 'https://www.tslang.cn/docs/home.html',
-    category: 'dev',
-  },
-  {
-    name: 'Vue 中文',
-    desc: '渐进式前端框架官方文档',
-    link: 'https://cn.vuejs.org/',
     category: 'dev',
   },
   {
@@ -132,12 +171,6 @@ export const sites = [
     name: 'htmleaf',
     desc: 'HTML5 特效与前端插件资源集合',
     link: 'http://www.htmleaf.com/',
-    category: 'dev',
-  },
-  {
-    name: 'Node.js 中文',
-    desc: 'Node.js 中文文档',
-    link: 'https://nodejs.cn/',
     category: 'dev',
   },
   {
@@ -178,6 +211,24 @@ export const sites = [
   },
 
   // ── 学习 ──
+  {
+    name: 'TypeScript 中文',
+    desc: 'TypeScript 中文权威文档',
+    link: 'https://www.tslang.cn/docs/home.html',
+    category: 'learn',
+  },
+  {
+    name: 'Node.js 中文',
+    desc: 'Node.js 中文文档',
+    link: 'https://nodejs.cn/',
+    category: 'learn',
+  },
+  {
+    name: 'Vue 中文',
+    desc: '渐进式前端框架官方文档',
+    link: 'https://cn.vuejs.org/',
+    category: 'learn',
+  },
   {
     name: 'MDN Web Docs',
     desc: '权威的 Web 开发文档，前端必查手册',
@@ -229,21 +280,39 @@ export const sites = [
     category: 'tool',
   },
   {
-    name: 'RegExr',
-    desc: '正则表达式在线测试与学习工具',
-    link: 'https://regexr.com',
-    category: 'tool',
-  },
-  {
     name: '菜鸟工具',
     desc: '在线小工具合集，编码转换计算',
     link: 'https://www.jyshare.com/',
     category: 'tool',
   },
   {
+    name: 'ZeroTool',
+    desc: '隐私优先的开发者工具箱，免费且无需注册，所有工具均在浏览器本地运行',
+    link: 'https://zerotool.dev/zh/tools/',
+    category: 'tool',
+  },
+  {
+    name: 'GeekFormat',
+    desc: '综合在线工具箱，提供200+免费工具，支持PDF、图片、JSON处理，数据本地处理',
+    link: 'https://geekformat.com/zh-TW/',
+    category: 'tool',
+  },
+  {
     name: '在线工具',
     desc: '程序员常用在线工具集合',
     link: 'https://tool.lu/',
+    category: 'tool',
+  },
+  {
+    name: 'remove.bg',
+    desc: '智能AI在线抠图，一键自动去除图片背景',
+    link: 'https://www.remove.bg/zh',
+    category: 'tool',
+  },
+  {
+    name: 'RegExr',
+    desc: '正则表达式在线测试与学习工具',
+    link: 'https://regexr.com',
     category: 'tool',
   },
   {

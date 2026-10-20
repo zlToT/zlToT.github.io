@@ -1,17 +1,18 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { games } from '../data/siteData'
 
 // 首页欢迎板块（占位文案，替换成你自己的介绍）
+// 网页小游戏数量动态读 games 数组长度，新增游戏自动更新
 const stats = [
   { value: '6', suffix: '年', label: '游戏开发' },
   { value: '10+', suffix: '个', label: '游戏上线项目' },
-  { value: '5', suffix: '个', label: '网页小游戏' },
+  { value: String(games.length), suffix: '个', label: '网页小游戏' },
   { value: '∞', suffix: '', label: '学习热情' },
 ]
 
 const quickLinks = [
-  { id: 'skill', label: '查看我的技能', primary: true },
-  { id: 'games', label: '去玩小游戏', primary: false },
+  { id: 'games', label: '去玩小游戏', primary: true },
   { id: 'sites', label: '有趣网站', primary: false },
   { id: 'contact', label: '联系方式', primary: false },
 ]
