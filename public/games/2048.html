@@ -6,18 +6,6 @@
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <title>2048 · zlToT 小游戏</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: linear-gradient(160deg, #0a0c10 0%, #101613 50%, #0a0c10 100%);
-    background-attachment: fixed;
-    color: #e6ede9;
-    padding: 24px 16px 48px;
-  }
   .title-bar {
     text-align: center;
     width: 100%;
@@ -25,20 +13,6 @@
     margin-bottom: 18px;
   }
   h1 { font-size: 26px; font-weight: 800; color: #e6ede9; }
-  .bottom-bar { display: flex; justify-content: center; margin-top: 16px; }
-  .back-btn {
-    padding: 10px 26px;
-    border: none;
-    border-radius: 60px;
-    background: #facc15;
-    color: #1a1c2c;
-    font-weight: bold;
-    font-size: 1rem;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-    transition: transform .15s, box-shadow .15s;
-  }
-  .back-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(250,204,21,.3); }
   .hud {
     display: flex;
     gap: 14px;
@@ -68,11 +42,12 @@
     padding: 14px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     width: 100%;
-    max-width: 500px;
+    max-width: min(500px, 88vw, 52vh);
   }
   .board {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
     gap: 10px;
     aspect-ratio: 1 / 1;
     background: #131b16;
@@ -86,16 +61,16 @@
     justify-content: center;
     font-weight: 800;
     font-size: 24px;
-    background: rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.08);
     color: #3a5547;
     transition: background 0.12s ease;
   }
-  .cell.t2 { background: #dce9df; color: #e6ede9; }
-  .cell.t4 { background: #d3f3e0; color: #e6ede9; }
-  .cell.t8 { background: #b5e0cc; color: #e6ede9; }
-  .cell.t16 { background: #8fd0b5; color: #e6ede9; }
-  .cell.t32 { background: #57b68c; color: #e6ede9; }
-  .cell.t64 { background: #57b68c; color: #0a1e14; }
+  .cell.t2 { background: #dce9df; color: #2f4a3a; }
+  .cell.t4 { background: #d3f3e0; color: #2f4a3a; }
+  .cell.t8 { background: #b5e0cc; color: #1f3d2d; }
+  .cell.t16 { background: #8fd0b5; color: #16301f; }
+  .cell.t32 { background: #57b68c; color: #fff; }
+  .cell.t64 { background: #3a9970; color: #fff; }
   .cell.t128 { background: #2f855a; color: #fff; }
   .cell.t256 { background: #f59e0b; color: #1a1c2c; }
   .cell.t512 { background: #f97316; color: #fff; }
@@ -146,13 +121,13 @@
     font-weight: 800;
     font-family: "Courier New", monospace;
     opacity: 0;
-    text-shadow: 0 0 18px currentColor;
+    text-shadow: none;
     animation: numFloat linear infinite;
   }
   @keyframes numFloat {
     0% { transform: translateY(0) rotate(-8deg); opacity: 0; }
-    12% { opacity: .32; }
-    88% { opacity: .26; }
+    12% { opacity: .12; }
+    88% { opacity: .1; }
     100% { transform: translateY(-118vh) rotate(10deg); opacity: 0; }
   }
 </style>
@@ -179,13 +154,15 @@
     </div>
   </div>
 
-  <div class="bottom-bar">
-    <button class="back-btn" onclick="history.back()">⬅ 返回</button>
-  </div>
-
   <p class="tip">电脑用方向键，手机直接滑动屏幕</p>
 
-<script>
+<script type="module">
+  import { initGamePage } from './game-utils.js';
+  initGamePage({ emojis: ['🔢', '🎲', '💠', '✨'] });
+  document.body.style.overflow = 'hidden';
+  document.body.style.overscrollBehavior = 'none';
+  document.documentElement.style.overscrollBehavior = 'none';
+
 (function () {
   var boardEl = document.getElementById('board');
   var scoreEl = document.getElementById('score');
@@ -382,7 +359,7 @@
     var s = document.createElement('span');
     s.textContent = vals[Math.floor(Math.random() * vals.length)];
     s.style.left = (Math.random() * 88 + 2) + '%';
-    s.style.fontSize = (Math.random() * 32 + 28) + 'px';
+    s.style.fontSize = (Math.random() * 14 + 16) + 'px';
     s.style.color = colors[Math.floor(Math.random() * colors.length)];
     s.style.animationDuration = (Math.random() * 10 + 12) + 's';
     s.style.animationDelay = (-Math.random() * 16) + 's';

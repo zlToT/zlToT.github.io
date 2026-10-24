@@ -6,4 +6,7 @@ export default defineConfig({
   plugins: [vue()],
   // 使用相对路径，兼容 GitHub Pages 根路径 / 子路径部署
   base: './',
+  server: {
+    host: true,  // 监听 0.0.0.0，局域网可访问
+  },
 })

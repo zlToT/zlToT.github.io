@@ -1,9 +1,26 @@
 <script setup>
+import { onMounted } from 'vue'
 import SideNav from './components/SideNav.vue'
 import Welcome from './components/Welcome.vue'
 import GameList from './components/GameList.vue'
 import SiteList from './components/SiteList.vue'
 import Contact from './components/Contact.vue'
+
+onMounted(() => {
+  const hash = window.location.hash
+  if (hash) {
+    setTimeout(() => {
+      const el = document.querySelector(hash)
+      if (el) {
+        document.documentElement.style.scrollSnapType = 'none'
+        el.scrollIntoView()
+        setTimeout(() => {
+          document.documentElement.style.scrollSnapType = ''
+        }, 300)
+      }
+    }, 100)
+  }
+})
 </script>
 
 <template>

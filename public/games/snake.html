@@ -16,9 +16,10 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
       margin: 0;
-      padding: 20px;
+      padding: 0;
       font-family: 'Segoe UI', system-ui;
     }
 
@@ -27,6 +28,8 @@
       padding: 20px;
       border-radius: 42px;
       box-shadow: 0 20px 35px rgba(0, 0, 0, 0.4);
+      transform-origin: center center;
+      flex-shrink: 0;
     }
 
     canvas {
@@ -412,7 +415,11 @@
     })();
   </script>
 
-  <script src="common.js"></script>
+  <script type="module">
+  import { fitToScreen } from './game-utils.js';
+  fitToScreen('.game-container');
+</script>
+<script src="common.js"></script>
 </body>
 
 </html>

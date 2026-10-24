@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<title>羊了个羊 · zlToT 小游戏</title>
+<style>
+  .title-bar { text-align: center; width: 100%; max-width: 480px; margin-bottom: 16px; }
+  h1 { font-size: 26px; font-weight: 800; }
+  .hud { display: flex; gap: 12px; justify-content: center; margin-bottom: 14px; width: 100%; max-width: 480px; }
+  .hud-item {
+    background: rgba(15,25,32,0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 8px 16px;
+    text-align: center;
+    flex: 1;
+  }
+  .hud-label { font-size: 12px; color: #809aa8; }
+  .hud-value { font-size: 20px; font-weight: 800; }
+
+  .board-wrap {
+    position: relative;
+    background: rgba(15,25,32,0.6);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    width: 100%;
+    max-width: 480px;
+  }
+  #board {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+  .tile {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: linear-gradient(180deg, #ffffff, #d8e6d8);
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.35), inset 0 -2px 0 rgba(0,0,0,0.08);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s ease, opacity 0.2s ease;
+    user-select: none;
+  }
+  .tile:hover { transform: scale(1.06); }
+  .tile.blocked { opacity: 0.42; cursor: not-allowed; filter: grayscale(0.4); }
+  .tile.blocked:hover { transform: none; }
+
+  .tray-wrap {
+    margin-top: 14px;
+    width: 100%;
+    max-width: 480px;
+  }
+  #tray {
+    display: flex;
+    gap: 6px;
+    background: rgba(15,25,32,0.7);
+    backdrop-filter: blur(12px);
+    border: 1px dashed rgba(255,255,255,0.18);
+    border-radius: 14px;
+    padding: 10px;
+    min-height: 52px;
+  }
+  .slot {
+    flex: 1;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .slot.filled { background: linear-gradient(180deg, #ffffff, #d8e6d8); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+
+  .tools {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 14px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .tool-btn {
+    flex: 1;
+    padding: 10px 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    background: rgba(15,25,32,0.7);
+    color: #e6ede9;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .15s, background .15s;
+  }
+  .tool-btn:hover:not(:disabled) { transform: translateY(-2px); background: rgba(47,133,90,0.35); }
+  .tool-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .tool-btn .cnt { color: #facc15; margin-left: 4px; }
+
+  .overlay {
+    position: absolute;
+    inset: 14px;
+    border-radius: 14px;
+    background: rgba(10, 15, 12, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    z-index: 99;
+    padding: 20px;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h2 { font-size: 24px; font-weight: 800; }
+  .overlay p { color: #aad0e6; font-size: 14px; line-height: 1.6; }
+  .btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1c2c;
+    background: #facc15;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: transform .2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+
+  .tip { margin-top: 14px; font-size: 13px; color: #809aa8; text-align: center; }
+
+  /* 三消烟花（小一点，快一点） */
+  .fw-particle {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 50;
+    animation: fwBurst 0.3s ease-out forwards;
+  }
+  @keyframes fwBurst {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.1); opacity: 0; }
+  }
+
+  /* 方块飞落槽位 */
+  .fly-tile {
+    position: fixed;
+    z-index: 999;
+    pointer-events: none;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: linear-gradient(180deg, #ffffff, #d8e6d8);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+  }
+</style>
+</head>
+<body>
+  <div class="title-bar">
+    <h1>🐑 羊了个羊</h1>
+  </div>
+
+  <div class="hud">
+    <div class="hud-item"><div class="hud-label">🧩 剩余</div><div class="hud-value" id="remain">0</div></div>
+    <div class="hud-item"><div class="hud-label">🏆 已通关</div><div class="hud-value" id="wins">0</div></div>
+  </div>
+
+  <div class="board-wrap">
+    <div id="board"></div>
+    <div class="overlay" id="overlay">
+      <h2 id="ov-title">🐑 羊了个羊</h2>
+      <p id="ov-desc">点选未被压住的方块放进下方槽位，<br>凑满三个相同图案即可消除。<br>槽位放满 7 个还没凑成三消，就失败啦！</p>
+      <button class="btn" id="startBtn">开始游戏</button>
+    </div>
+  </div>
+
+  <div class="tray-wrap">
+    <div id="tray"></div>
+  </div>
+
+  <div class="tools">
+    <button class="tool-btn" id="undoBtn">↩️ 撤回<span class="cnt" id="undoCnt">3</span></button>
+    <button class="tool-btn" id="shuffleBtn">🔀 洗牌<span class="cnt" id="shuffleCnt">3</span></button>
+    <button class="tool-btn" id="removeBtn">📤 移出<span class="cnt" id="removeCnt">3</span></button>
+  </div>
+
+  <p class="tip">灰色方块被压住了，先点它上面的才行哦</p>
+
+<script type="module">
+  import { initGamePage } from './game-utils.js';
+  const { bgm } = initGamePage({
+    bgmSrc: '../music/bgm_dnf.mp3',
+    emojis: ['🌿', '☁️', '🐑', '🍀', '🌱']
+  });
+
+(function () {
+  var TYPES = ['🐑', '🐶', '🐱', '🐰', '🦊', '🐻', '🐼', '🐨', '🐷'];
+  var COLS = 9, ROWS = 9, GROUPS = 15; // 15 组 × 3 = 45 块
+
+  var boardEl = document.getElementById('board');
+  var trayEl = document.getElementById('tray');
+  var remainEl = document.getElementById('remain');
+  var winsEl = document.getElementById('wins');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title');
+  var ovDesc = document.getElementById('ov-desc');
+  var startBtn = document.getElementById('startBtn');
+  var undoBtn = document.getElementById('undoBtn');
+  var shuffleBtn = document.getElementById('shuffleBtn');
+  var removeBtn = document.getElementById('removeBtn');
+  var undoCnt = document.getElementById('undoCnt');
+  var shuffleCnt = document.getElementById('shuffleCnt');
+  var removeCnt = document.getElementById('removeCnt');
+
+  var tiles = [];
+  var tray = [];
+  var helpers = { undo: 3, shuffle: 3, remove: 3 };
+  var over = false;
+
+  var wins = Number(localStorage.getItem('sheep-wins') || 0);
+  winsEl.textContent = wins;
+
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function build() {
+    tiles = [];
+    tray = [];
+    helpers = { undo: 3, shuffle: 3, remove: 3 };
+    over = false;
+
+    var typePool = [];
+    var chosen = shuffle(TYPES.slice()).slice(0, 9);
+    for (var g = 0; g < GROUPS; g++) {
+      var t = chosen[g % chosen.length];
+      typePool.push(t, t, t);
+    }
+    shuffle(typePool);
+
+    var used = {};
+    for (var i = 0; i < typePool.length; i++) {
+      var col, row, z, key, tries = 0;
+      do {
+        col = 1 + Math.floor(Math.random() * (COLS - 2));
+        row = 1 + Math.floor(Math.random() * (ROWS - 2));
+        z = Math.floor(Math.random() * 4);
+        key = col + ',' + row + ',' + z;
+        tries++;
+      } while (used[key] && tries < 30);
+      used[key] = true;
+      tiles.push({
+        id: i, type: typePool[i], col: col, row: row, z: z, cleared: false,
+        jx: (Math.random() - 0.5) * 0.3,
+        jy: (Math.random() - 0.5) * 0.3
+      });
+    }
+    render();
+  }
+
+  function isFree(t) {
+    if (t.cleared) return false;
+    for (var i = 0; i < tiles.length; i++) {
+      var o = tiles[i];
+      if (o.cleared || o.id === t.id) continue;
+      if (o.z > t.z && Math.abs(o.col - t.col) <= 1 && Math.abs(o.row - t.row) <= 1) return false;
+    }
+    return true;
+  }
+
+  function render() {
+    var cell = boardEl.clientWidth / COLS;
+    boardEl.innerHTML = '';
+    tiles.forEach(function (t) {
+      if (t.cleared) return;
+      var el = document.createElement('div');
+      el.className = 'tile' + (isFree(t) ? '' : ' blocked');
+      el.style.width = (cell * 0.92) + 'px';
+      el.style.height = (cell * 0.92) + 'px';
+      el.style.left = ((t.col + t.jx) * cell) + 'px';
+      el.style.top = ((t.row + t.jy) * cell) + 'px';
+      el.style.zIndex = (t.z * 10 + 1);
+      el.textContent = t.type;
+      el.addEventListener('click', function () { pickup(t, el); });
+      boardEl.appendChild(el);
+    });
+    renderTray();
+    remainEl.textContent = tiles.filter(function (t) { return !t.cleared; }).length;
+    undoCnt.textContent = helpers.undo;
+    shuffleCnt.textContent = helpers.shuffle;
+    removeCnt.textContent = helpers.remove;
+    undoBtn.disabled = helpers.undo <= 0 || tray.length === 0;
+    shuffleBtn.disabled = helpers.shuffle <= 0;
+    removeBtn.disabled = helpers.remove <= 0 || tray.length === 0;
+  }
+
+  function renderTray(animDur) {
+    var dur = animDur || 250;
+    // FLIP 记录旧位置
+    var oldSlots = Array.prototype.slice.call(trayEl.querySelectorAll('.slot'));
+    var oldX = oldSlots.map(function (s) { return s.offsetLeft; });
+
+    trayEl.innerHTML = '';
+    for (var s = 0; s < 7; s++) {
+      var slot = document.createElement('div');
+      var item = tray[s];
+      slot.className = 'slot' + (item ? ' filled' : '');
+      if (item) slot.textContent = item.type;
+      trayEl.appendChild(slot);
+    }
+
+    // 位移动画
+    var newSlots = trayEl.querySelectorAll('.slot');
+    for (var i = 0; i < newSlots.length; i++) {
+      if (i < oldX.length) {
+        var dx = oldX[i] - newSlots[i].offsetLeft;
+        if (Math.abs(dx) > 1) {
+          (function (el, d) {
+            el.style.transition = 'none';
+            el.style.transform = 'translateX(' + d + 'px)';
+            requestAnimationFrame(function () {
+              el.style.transition = 'transform ' + dur + 'ms cubic-bezier(0.4, 0, 0.2, 1)';
+              el.style.transform = '';
+            });
+          })(newSlots[i], dx);
+        }
+      }
+    }
+  }
+
+  // 在指定元素上播放小烟花（颜色加深）
+  function fireworksOn(targetEl) {
+    var rect = targetEl.getBoundingClientRect();
+    var parentRect = trayEl.offsetParent.getBoundingClientRect();
+    var cx = rect.left - parentRect.left + rect.width / 2;
+    var cy = rect.top - parentRect.top + rect.height / 2;
+    var colors = ['#eab308', '#db2777', '#16a34a', '#0284c7', '#9333ea', '#ea580c'];
+    for (var i = 0; i < 10; i++) {
+      var p = document.createElement('div');
+      p.className = 'fw-particle';
+      var angle = (Math.PI * 2 * i) / 10;
+      var dist = 18 + Math.random() * 15;
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      trayEl.offsetParent.appendChild(p);
+      (function (el) { setTimeout(function () { el.remove(); }, 300); })(p);
+    }
+  }
+
+  function pickup(t, el) {
+    if (over || !isFree(t)) return;
+
+    // 计算插入位置：同类型后面
+    var insertIdx = tray.length;
+    for (var i = tray.length - 1; i >= 0; i--) {
+      if (tray[i].type === t.type) { insertIdx = i + 1; break; }
+    }
+    var willMatch = tray.filter(function (x) { return x.type === t.type; }).length === 2;
+
+    // 飞行时长：顶部 0.3s，底部快一些（按到槽位的距离比例）
+    var srcRect = el.getBoundingClientRect();
+    var slots = trayEl.querySelectorAll('.slot');
+    var targetIdx = Math.min(insertIdx, 6);
+    var targetRect = slots[targetIdx].getBoundingClientRect();
+    var distRatio = Math.max(0, Math.min(1, srcRect.top / window.innerHeight));
+    var flyDur = Math.round(150 + 180 * distRatio); // 0.15s ~ 0.33s
+
+    // 标记棋盘方块已消除
+    t.cleared = true;
+    renderBoard();
+    if (window.SFX) window.SFX.flip();
+
+    // 槽位先插入（触发右移动画，与飞行同步）
+    tray.splice(insertIdx, 0, { type: t.type, tile: t });
+    renderTray(flyDur);
+
+    // 创建飞落克隆（先慢后快 ease-in）
+    var fly = document.createElement('div');
+    fly.className = 'fly-tile';
+    fly.textContent = t.type;
+    fly.style.width = srcRect.width + 'px';
+    fly.style.height = srcRect.height + 'px';
+    fly.style.left = srcRect.left + 'px';
+    fly.style.top = srcRect.top + 'px';
+    fly.style.transition = 'transform ' + flyDur + 'ms cubic-bezier(0.55, 0, 0.85, 0.34)';
+    document.body.appendChild(fly);
+
+    requestAnimationFrame(function () {
+      var dx = targetRect.left + targetRect.width / 2 - (srcRect.left + srcRect.width / 2);
+      var dy = targetRect.top + targetRect.height / 2 - (srcRect.top + srcRect.height / 2);
+      fly.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0.85)';
+    });
+
+    // 飞落结束后清理
+    setTimeout(function () {
+      fly.remove();
+
+      if (willMatch) {
+        // 在 3 个匹配槽位上同时放烟花
+        var matchedIdx = [];
+        tray.forEach(function (item, i) { if (item.type === t.type) matchedIdx.push(i); });
+        var slotEls = trayEl.querySelectorAll('.slot');
+        matchedIdx.forEach(function (idx) { fireworksOn(slotEls[idx]); });
+
+        // 烟花结束后移除并补位
+        setTimeout(function () {
+          tray = tray.filter(function (x) { return x.type !== t.type; });
+          if (window.SFX) window.SFX.match();
+          renderTray(250);
+          checkEnd();
+        }, 300);
+      } else {
+        checkEnd();
+      }
+    }, flyDur);
+  }
+
+  function renderBoard() {
+    var cell = boardEl.clientWidth / COLS;
+    boardEl.innerHTML = '';
+    tiles.forEach(function (t) {
+      if (t.cleared) return;
+      var el = document.createElement('div');
+      el.className = 'tile' + (isFree(t) ? '' : ' blocked');
+      el.style.width = (cell * 0.92) + 'px';
+      el.style.height = (cell * 0.92) + 'px';
+      el.style.left = ((t.col + t.jx) * cell) + 'px';
+      el.style.top = ((t.row + t.jy) * cell) + 'px';
+      el.style.zIndex = (t.z * 10 + 1);
+      el.textContent = t.type;
+      el.addEventListener('click', function () { pickup(t, el); });
+      boardEl.appendChild(el);
+    });
+    remainEl.textContent = tiles.filter(function (t) { return !t.cleared; }).length;
+  }
+
+  function checkEnd() {
+    var remaining = tiles.some(function (t) { return !t.cleared; });
+    if (!remaining && tray.length === 0) { win(); return; }
+    if (tray.length >= 7) { lose(); }
+  }
+
+  function undo() {
+    if (over || helpers.undo <= 0 || tray.length === 0) return;
+    var last = tray.pop();
+    last.tile.cleared = false;
+    helpers.undo--;
+    if (window.SFX) window.SFX.flip();
+    render();
+  }
+
+  function shuffleTypes() {
+    if (over || helpers.shuffle <= 0) return;
+    var left = tiles.filter(function (t) { return !t.cleared; });
+    if (left.length === 0) return;
+    var types = left.map(function (t) { return t.type; });
+    shuffle(types);
+    left.forEach(function (t, i) { t.type = types[i]; });
+    helpers.shuffle--;
+    if (window.SFX) window.SFX.merge();
+    render();
+  }
+
+  function removeThree() {
+    if (over || helpers.remove <= 0 || tray.length === 0) return;
+    var n = Math.min(3, tray.length);
+    for (var i = 0; i < n; i++) {
+      var last = tray.pop();
+      last.tile.cleared = false;
+    }
+    helpers.remove--;
+    if (window.SFX) window.SFX.merge();
+    render();
+  }
+
+  function win() {
+    over = true;
+    wins = Number(localStorage.getItem('sheep-wins') || 0) + 1;
+    localStorage.setItem('sheep-wins', wins);
+    winsEl.textContent = wins;
+    if (window.SFX) window.SFX.clear();
+    ovTitle.textContent = '🎉 通关成功！';
+    ovDesc.innerHTML = '你把所有方块都消光啦～<br>这是你第 ' + wins + ' 次通关';
+    startBtn.textContent = '再来一局';
+    overlay.classList.remove('hidden');
+  }
+
+  function lose() {
+    over = true;
+    if (window.SFX) window.SFX.over();
+    ovTitle.textContent = '😵 槽位满了…';
+    ovDesc.innerHTML = '差一点点！换个思路再试试？';
+    startBtn.textContent = '重新开始';
+    overlay.classList.remove('hidden');
+  }
+
+  startBtn.addEventListener('click', function () {
+    overlay.classList.add('hidden');
+    build();
+    bgm.restart();
+  });
+  undoBtn.addEventListener('click', undo);
+  shuffleBtn.addEventListener('click', shuffleTypes);
+  removeBtn.addEventListener('click', removeThree);
+
+  var rt;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 150); });
+
+})();
+</script>
+
+<script src="common.js"></script>
+</body>
+</html>

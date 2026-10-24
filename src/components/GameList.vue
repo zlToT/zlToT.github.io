@@ -3,7 +3,7 @@ import { games } from '../data/siteData.js'
 import BgEffect from './BgEffect.vue'
 
 // 卡通 emoji 图标（对应 g.icon）
-const gameEmoji = { snake: '🐍', tetris: '🧩', mole: '🔨', tile: '🔢', memory: '🧠', blocks: '🧱', fanren: '⚔️' }
+const gameEmoji = { snake: '🐍', tetris: '🧩', mole: '🔨', tile: '🔢', memory: '🧠', blocks: '🧱', fanren: '⚔️', sheep: '🐑', piano: '🎹' }
 </script>
 
 <template>
@@ -177,6 +177,14 @@ const gameEmoji = { snake: '🐍', tetris: '🧩', mole: '🔨', tile: '🔢', m
 
 .tone-fanren {
   background: linear-gradient(135deg, #7c3aed, #06b6d4);
+}
+
+.tone-sheep {
+  background: linear-gradient(135deg, #fbbf24, #f472b6);
+}
+
+.tone-piano {
+  background: linear-gradient(135deg, #64748b, #1e293b);
 }
 
 .game-body {

@@ -61,15 +61,15 @@ description: zlToT 个人作品集网站（Vue3 + Vite + GitHub Pages）的完�
 
 1. 所有小游戏静态页面统一放在项目 `public/games/` 目录下（构建后即 `/games/`，可访问）
 2. 每个小游戏为独立 HTML，完全独立运行，和主页互不干扰
-3. **文件命名语义化**（不用 `game-01` 序号）：`snake.html`（贪吃蛇）/ `tetris.html`（俄罗斯方块）/ `mole.html`（打地鼠）/ `2048.html`（2048）/ `memory.html`（记忆翻牌）
+3. **文件命名语义化**（不用 `game-01` 序号）：`snake.html`（贪吃蛇）/ `tetris.html`（俄罗斯方块）/ `mole.html`（打地鼠）/ `2048.html`（2048）/ `memory.html`（记忆翻牌）/ `sheep.html`（羊了个羊）/ `piano.html`（别踩白块儿）
 4. **返回按钮**：默认每个游戏页底部（game-container 下方）有**水平居中**的「⬅ 返回」黄色按钮，点击执行 `history.back()`；**俄罗斯方块例外**：「⬅ 返回」与「🧩 新游戏」在同一行（btn-row，**两按钮等宽各 50%**（flex:1 1 0%、统一 padding 8px 14px），宽度总和 = game-main 宽度、8px 缝隙不留空、高度一致 37px）；点击卡片在当前窗口打开
 5. **开始按钮**：`snake.html` 与 `tetris.html` 均**无开始按钮**，加载即自动开始（`start()` / `resetGame()`）；「🧩 新游戏」/「🐍 新的一局」按钮即重新开始
 6. **深色沉浸统一**：5 个游戏页全部用深色沉浸式背景（`linear-gradient(160deg,#0a0c10 0%,#101613 50%,#0a0c10 100%)` / tetris `#03060C` + 粒子星空），深色玻璃容器、黄色 `#FACC15` 按钮与数字、emoji 标题（🎮/🔨/🧠）与 HUD 图标；风格卡通/像素 + 特殊符号强化视觉；`snake.html` 是用户自写版本，**不得改动其游戏画面效果**
 7. **防开发者工具（公共 common.js）**：5 个游戏页均引用 `public/games/common.js`（拦截 F12、Ctrl+Shift+I/J/C、Ctrl+U 及右键菜单 contextmenu，禁止查看源码），代码不内联、复用；**调试模式**：URL 带 `?debug` 或 `?debug=1` 时跳过所有拦截（可正常按 F12 查看标签），用于开发排查
 8. **背景个性化**：各游戏背景不呆板、有主题——2048 漂浮数字世界（JS 生成彩色半透明数字上浮）、打地鼠背景小老鼠 🐹 来回走动、记忆翻牌右上角浅色月亮 + 星光 + **上方随机 ⭐✨ 闪烁**（16 颗、随机位置/大小/延迟）、贪吃蛇背景**随机水果 🍎🍌🍇🍊🍓🍉 渐入渐出**（7 个、fixed 层、循环动画）；均为 fixed 背景层、pointer-events:none、半透明，不挡交互
 9. **玩法细节**：贪吃蛇蛇头亮绿 `#7DD956` + 眼睛（朝向移动方向）、身体深绿 `#58B13A`，食物用 🍎 emoji 绘制；打地鼠每次随机 1~3 只地鼠冒出；2048 初始显示「怎么玩」引导（方向键/滑动移动、相同数字合并翻倍、目标 2048），点击「开始游戏」后开局
-10. **最高记录（localStorage）**：贪吃蛇 `snake-best`、俄罗斯方块 `tetris-best`、2048 `g2048-best`、打地鼠 `mole-best`、记忆翻牌 `memory-best`；snake/tetris/2048/mole 页面显示 🏆 最高分（实时刷新），memory 显示最佳步数
-11. **音效与特效（公共 common.js 音效库 window.SFX）**：Web Audio 合成无外部文件——贪吃蛇吃到 🍎 `SFX.eat()` + 蛇头粒子迸发特效；俄罗斯方块**方块落地 `SFX.hit()`**、消行 `SFX.clear()` + 棋盘白闪 120ms + 分数弹跳；打地鼠打中 `SFX.hit()` + 💥 弹起特效；2048 合并 `SFX.merge()` + 格子弹跳动画；记忆翻牌翻牌 `SFX.flip()`、配对成功 `SFX.match()` + 卡片闪光；游戏结束统一 `SFX.over()`
+10. **最高记录（localStorage）**：贪吃蛇 `snake-best`、俄罗斯方块 `tetris-best`、2048 `g2048-best`、打地鼠 `mole-best`、记忆翻牌 `memory-best`、羊了个羊 `sheep-wins`（累计通关次数）、别踩白块儿 `piano-best`（最高手速黑块数）；snake/tetris/2048/mole 页面显示 🏆 最高分（实时刷新），memory 显示最佳步数，sheep 显示已通关次数，piano 显示最高手速
+11. **音效与特效（公共 common.js 音效库 window.SFX）**：Web Audio 合成无外部文件——贪吃蛇吃到 🍎 `SFX.eat()` + 蛇头粒子迸发特效；俄罗斯方块**方块落地 `SFX.hit()`**、消行 `SFX.clear()` + 棋盘白闪 120ms + 分数弹跳；打地鼠打中 `SFX.hit()` + 💥 弹起特效；2048 合并 `SFX.merge()` + 格子弹跳动画；记忆翻牌翻牌 `SFX.flip()`、配对成功 `SFX.match()` + 卡片闪光；羊了个羊点块 `SFX.flip()`、三消 `SFX.match()`、道具 `SFX.merge()`、通关 `SFX.clear()`；游戏结束统一 `SFX.over()`
 12. 后续新增小游戏操作流程：
    1. 将小游戏完整静态文件放入 `public/games/` 文件夹（语义命名）
    2. 在主页小游戏列表配置数组（`src/data/siteData.js` 的 `games`）新增一条卡片信息（名称、简介、链接、icon key）
@@ -108,6 +108,8 @@ zlToT.github.io-site
 │       ├── mole.html          # 打地鼠（深色沉浸 + emoji + 底部返回）
 │       ├── 2048.html          # 2048（深色沉浸 + emoji + 底部返回）
 │       ├── memory.html        # 记忆翻牌（深色沉浸 + emoji + 底部返回）
+│       ├── sheep.html         # 羊了个羊（叠层三消 + 7 格槽位 + 撤回/洗牌/移出三道具 + 🏆累计通关数）
+│       ├── piano.html         # 别踩白块儿（4列黑块下落，点黑别踩白，漏块判负，速度随手速递增 + 🏆最高分）
 │       └── fanren/           # 凡人·秘境苟道（Vite 构建产物，独立工程源码在 ../fanren-game/）
 └── src
     ├── App.vue                # 主页面，组合所有板块

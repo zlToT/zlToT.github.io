@@ -20,6 +20,34 @@ export const games = [
     tag: '消除',
   },
   {
+    name: '羊了个羊',
+    desc: '叠层方块三消，点选没被压住的方块进槽位，凑齐三个相同图案消除，槽位满 7 个就输',
+    link: './games/sheep.html',
+    icon: 'sheep',
+    tag: '消除',
+  },
+  {
+    name: '别踩白块儿',
+    desc: '黑块不断往下掉，只点黑块别踩白块，手速越快越刺激，漏一个就输',
+    link: './games/piano.html',
+    icon: 'piano',
+    tag: '反应',
+  },
+  {
+    name: '打地鼠',
+    desc: '地鼠冒头就打，限时 30 秒，看你能得多少分',
+    link: './games/mole.html',
+    icon: 'mole',
+    tag: '反应',
+  },
+  {
+    name: '2048',
+    desc: '滑动合并相同数字，冲击 2048 大关',
+    link: './games/2048.html',
+    icon: 'tile',
+    tag: '益智',
+  },
+  {
     name: '记忆翻牌',
     desc: '翻开卡片找配对，考验记忆力的时候到了',
     link: './games/memory.html',
@@ -40,20 +68,6 @@ export const games = [
     icon: 'tetris',
     tag: '经典',
   },
-  {
-    name: '打地鼠',
-    desc: '地鼠冒头就打，限时 30 秒，看你能得多少分',
-    link: './games/mole.html',
-    icon: 'mole',
-    tag: '反应',
-  },
-  {
-    name: '2048',
-    desc: '滑动合并相同数字，冲击 2048 大关',
-    link: './games/2048.html',
-    icon: 'tile',
-    tag: '益智',
-  },
 ]
 
 // 有趣网站分类（分类 key 与站点记录的 category 对应）
@@ -72,49 +86,49 @@ export const sites = [
   {
     name: 'Ollama 中文站',
     desc: 'Ollama 的中文资源与文档，本地运行和管理大语言模型',
-    link: 'https://ollamacn.github.io/' ,
+    link: 'https://ollamacn.github.io/',
     category: 'ai',
   },
   {
     name: 'OpenAI Codex',
     desc: 'OpenAI 的 AI 代码助手，基于大模型辅助编程与代码生成',
-    link: 'https://openai.com/zh-Hans-CN/codex/' ,
+    link: 'https://openai.com/zh-Hans-CN/codex/',
     category: 'ai',
   },
   {
     name: 'Work Buddy',
     desc: 'AI 驱动的工作助手，提供智能任务管理与效率工具',
-    link: 'https://www.workbuddy.cn/' ,
+    link: 'https://www.workbuddy.cn/',
     category: 'ai',
   },
   {
     name: 'ChatGLM',
     desc: '智谱 AI 推出的中文大语言模型对话助手',
-    link: 'https://chatglm.cn/' ,
+    link: 'https://chatglm.cn/',
     category: 'ai',
   },
   {
     name: 'Coze Code',
     desc: '字节跳动推出的 AI 代码开发平台，支持智能编程与协作',
-    link: 'https://code.coze.cn/' ,
+    link: 'https://code.coze.cn/',
     category: 'ai',
   },
   {
     name: '豆包',
     desc: '字节跳动推出的 AI 对话助手与智能体，支持问答与任务处理',
-    link: 'https://www.doubao.com/' ,
+    link: 'https://www.doubao.com/',
     category: 'ai',
   },
   {
     name: 'Clawd',
     desc: 'OpenClaw 中文社区 开源项目与社区，专注于 AI 模型与应用开发',
-    link: 'https://clawd.org.cn/' ,
+    link: 'https://clawd.org.cn/',
     category: 'ai',
   },
   {
     name: 'ClawHub',
     desc: 'AI 模型与工具集散地，提供模型分享、下载与协作功能',
-    link: 'https://clawhub.ai/' ,
+    link: 'https://clawhub.ai/',
     category: 'ai',
   },
 
@@ -128,7 +142,7 @@ export const sites = [
   {
     name: 'Cloudflare Dashboard',
     desc: '全球领先的云服务平台控制台，提供DNS、CDN、安全防护、边缘计算等一站式管理',
-    link: 'https://dash.cloudflare.com/' ,
+    link: 'https://dash.cloudflare.com/',
     category: 'dev',
   },
   {

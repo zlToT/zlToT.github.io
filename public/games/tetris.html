@@ -17,11 +17,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
+            padding: 0;
             font-family: 'Segoe UI', 'Courier New', monospace;
             position: relative;
-            overflow-x: hidden;
         }
 
         #particleCanvas {
@@ -51,6 +51,8 @@
             flex-direction: column;
             align-items: center;
             gap: 12px;
+            transform-origin: center center;
+            flex-shrink: 0;
         }
         .game-container:hover {
             border-color: rgba(100, 180, 255, 0.3);
@@ -328,8 +330,8 @@
 
         const COLS = 10;
         const ROWS = 20;
-        const BLOCK_SIZE = 24;
-        const PREVIEW_BLOCK = 17;
+        let BLOCK_SIZE = 24;
+        let PREVIEW_BLOCK = 17;
 
         // 七种方块定义
         const TETROMINOS = {
@@ -667,6 +669,10 @@
     })();
 </script>
 
+<script type="module">
+  import { fitToScreen } from './game-utils.js';
+  fitToScreen('.game-container');
+</script>
 <script src="common.js"></script>
 </body>
 </html>
