@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<title>别踩白块儿 · zlToT 小游戏</title>
+<style>
+  .title-bar { text-align: center; width: 100%; max-width: 360px; margin-bottom: 16px; }
+  h1 { font-size: 26px; font-weight: 800; }
+  .hud { display: flex; gap: 12px; justify-content: center; margin-bottom: 14px; width: 100%; max-width: 360px; }
+  .hud-item {
+    background: rgba(15,25,32,0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 8px 16px;
+    text-align: center;
+    flex: 1;
+  }
+  .hud-label { font-size: 12px; color: #809aa8; }
+  .hud-value { font-size: 20px; font-weight: 800; }
+
+  #board {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #f5f2ea;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    touch-action: none;
+    cursor: pointer;
+  }
+  .row {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    display: flex;
+  }
+  .cell {
+    flex: 1;
+    border-right: 1px solid #e0dccd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cell:last-child { border-right: none; }
+  .cell.black { background: #1a1a1a; }
+  .cell.tapped { background: #4ade80 !important; transition: background 0.08s; }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 15, 12, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    z-index: 10;
+    padding: 20px;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h2 { font-size: 24px; font-weight: 800; }
+  .overlay p { color: #aad0e6; font-size: 14px; line-height: 1.7; }
+  .btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1c2c;
+    background: #facc15;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: transform .2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .tip { margin-top: 14px; font-size: 13px; color: #809aa8; text-align: center; }
+
+  /* 松手特效：顶部绽放 */
+  .release-burst {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 50;
+    animation: rbBurst 0.5s ease-out forwards;
+  }
+  @keyframes rbBurst {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+  }
+  .release-ring {
+    position: absolute;
+    border: 2px solid #4ade80;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 49;
+    animation: rbRing 0.4s ease-out forwards;
+  }
+  @keyframes rbRing {
+    0% { width: 10px; height: 10px; opacity: 0.9; }
+    100% { width: 50px; height: 50px; opacity: 0; }
+  }
+</style>
+</head>
+<body>
+  <div class="title-bar">
+    <h1>🎹 别踩白块儿</h1>
+  </div>
+
+  <div class="hud">
+    <div class="hud-item"><div class="hud-label">🎵 已点</div><div class="hud-value" id="score">0</div></div>
+    <div class="hud-item"><div class="hud-label">🏆 最高</div><div class="hud-value" id="best">0</div></div>
+  </div>
+
+  <div id="board">
+    <div class="overlay" id="overlay">
+      <h2 id="ov-title">🎹 别踩白块儿</h2>
+      <p id="ov-desc">黑块会不断往下掉，<br>只点黑色方块，点到白块或漏了黑块就输！</p>
+      <button class="btn" id="startBtn">开始游戏</button>
+    </div>
+  </div>
+
+  <p class="tip">手速要快，黑块掉出屏幕还没点就失败啦</p>
+
+<script type="module">
+  import { initGamePage } from './game-utils.js';
+  const { bgm } = initGamePage({
+    bgmSrc: '../music/bgm_piano.mp3',
+    emojis: ['🎵', '🎶', '🎹', '♪', '♫']
+  });
+
+(function () {
+  var boardEl = document.getElementById('board');
+  var scoreEl = document.getElementById('score');
+  var bestEl = document.getElementById('best');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title');
+  var ovDesc = document.getElementById('ov-desc');
+  var startBtn = document.getElementById('startBtn');
+
+  var COLS = 4;
+  var VISIBLE = 8;          // 可见行数
+  var rowH = 0;             // 由宽度算出（正方形格子）
+  var rows = [];            // 每行：{ blackCol, tapped, el, y }
+  var speed = 120;          // 像素/秒
+  var score = 0;
+  var running = false;
+  var lastTime = 0;
+  var rafId = null;
+
+  var best = Number(localStorage.getItem('piano-best') || 0);
+  bestEl.textContent = best;
+
+  function measure() {
+    var titleH = document.querySelector('.title-bar').offsetHeight;
+    var hudH = document.querySelector('.hud').offsetHeight;
+    var padding = 48;
+    var availH = window.innerHeight - titleH - hudH - padding;
+    // 高度方向：可用高度平分给可见行
+    var rowHByH = Math.floor(availH / VISIBLE);
+    // 宽度方向：棋盘最大 320px
+    var rowHByW = Math.min(320, window.innerWidth - 32) / COLS;
+    rowH = Math.min(rowHByH, rowHByW);
+    boardEl.style.width = (rowH * COLS) + 'px';
+    boardEl.style.height = (rowH * VISIBLE) + 'px';
+  }
+
+  function newRow(withBlack) {
+    return {
+      blackCol: withBlack === false ? -1 : Math.floor(Math.random() * COLS),
+      tapped: false, el: null, y: 0
+    };
+  }
+
+  function renderRow(r) {
+    var div = document.createElement('div');
+    div.className = 'row';
+    for (var c = 0; c < COLS; c++) {
+      var cell = document.createElement('div');
+      cell.className = 'cell' + (c === r.blackCol ? ' black' : '') + (r.tapped ? ' tapped' : '');
+      div.appendChild(cell);
+    }
+    return div;
+  }
+
+  function buildRows() {
+    rows = [];
+    boardEl.querySelectorAll('.row').forEach(function (e) { e.remove(); });
+    // 开局：上半屏 4 行有黑块，下半屏 4 行全白（给玩家缓冲时间）
+    for (var i = 0; i < VISIBLE; i++) {
+      var r = newRow(i < VISIBLE / 2);
+      r.y = i * rowH;
+      r.el = renderRow(r);
+      r.el.style.top = r.y + 'px';
+      r.el.style.height = rowH + 'px';
+      rows.push(r);
+      boardEl.appendChild(r.el);
+    }
+  }
+
+  function loop(ts) {
+    if (!running) return;
+    rafId = requestAnimationFrame(loop);
+    if (!lastTime) lastTime = ts;
+    var dt = (ts - lastTime) / 1000;
+    lastTime = ts;
+
+    var dy = speed * dt;
+    rows.forEach(function (r) { r.y += dy; });
+
+    // 最底行掉出屏幕：有黑块但没被点才判负
+    for (var i = rows.length - 1; i >= 0; i--) {
+      if (rows[i].y >= boardEl.clientHeight) {
+        if (rows[i].blackCol >= 0 && !rows[i].tapped) { gameOver(); return; }
+        rows[i].el.remove();
+        rows.splice(i, 1);
+      }
+    }
+
+    // 顶部有空隙就从屏幕外补一行进来
+    while (rows.length === 0 || rows[0].y > 0) {
+      var nr = newRow();
+      var topY = rows.length === 0 ? 0 : rows[0].y;
+      nr.y = topY - rowH;
+      nr.el = renderRow(nr);
+      nr.el.style.top = nr.y + 'px';
+      nr.el.style.height = rowH + 'px';
+      rows.unshift(nr);
+      boardEl.appendChild(nr.el);
+    }
+
+    rows.forEach(function (r) { r.el.style.top = r.y + 'px'; });
+
+    // 按住不放时，每帧检测手指下方是否有新的黑块滑过
+    if (pointerDown) checkAt(lastX, lastY);
+  }
+
+  function checkAt(clientX, clientY) {
+    if (!running) return;
+    var rect = boardEl.getBoundingClientRect();
+    var cx = clientX - rect.left;
+    var cy = clientY - rect.top;
+    var col = Math.floor(cx / rowH);
+    for (var i = 0; i < rows.length; i++) {
+      if (cy >= rows[i].y && cy < rows[i].y + rowH) {
+        var row = rows[i];
+        if (row.tapped) return;
+        if (row.blackCol < 0) return;  // 这行没有黑块，点了也没事
+        if (col === row.blackCol) {
+          row.tapped = true;
+          row.el.children[col].classList.add('tapped');
+          score++;
+          scoreEl.textContent = score;
+          speed = Math.min(500, speed * 1.01);
+          if (window.SFX) window.SFX.flip();
+          sessionTapped.push(row);
+        } else {
+          gameOver();
+        }
+        return;
+      }
+    }
+  }
+
+  var pointerDown = false;
+  var lastX = 0, lastY = 0;
+  var sessionTapped = [];
+
+  function onDown(e) {
+    if (!running) return;
+    e.preventDefault();
+    pointerDown = true;
+    sessionTapped = [];
+    var p = e.touches ? e.touches[0] : e;
+    lastX = p.clientX; lastY = p.clientY;
+    checkAt(lastX, lastY);
+  }
+  function onMove(e) {
+    if (!running || !pointerDown) return;
+    e.preventDefault();
+    var p = e.touches ? e.touches[0] : e;
+    lastX = p.clientX; lastY = p.clientY;
+    checkAt(lastX, lastY);
+  }
+  function onUp() {
+    if (pointerDown && sessionTapped.length > 1) {
+      // 找本次连点里最靠上的那块，在它上方绽放
+      var topRow = sessionTapped[0];
+      sessionTapped.forEach(function (r) { if (r.y < topRow.y) topRow = r; });
+      var cx = topRow.blackCol * rowH + rowH / 2;
+      var cy = topRow.y + rowH / 2;
+      // 扩散圆环
+      var ring = document.createElement('div');
+      ring.className = 'release-ring';
+      ring.style.left = (cx - 5) + 'px';
+      ring.style.top = (cy - 5) + 'px';
+      boardEl.appendChild(ring);
+      setTimeout(function () { ring.remove(); }, 450);
+      // 粒子上飞
+      for (var i = 0; i < 10; i++) {
+        var p = document.createElement('div');
+        p.className = 'release-burst';
+        var angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI;
+        var dist = 30 + Math.random() * 30;
+        p.style.left = cx + 'px';
+        p.style.top = cy + 'px';
+        p.style.background = '#4ade80';
+        p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+        p.style.setProperty('--dy', Math.sin(angle) * dist - 20 + 'px');
+        boardEl.appendChild(p);
+        (function (el) { setTimeout(function () { el.remove(); }, 550); })(p);
+      }
+    }
+    pointerDown = false;
+    sessionTapped = [];
+  }
+
+  function gameOver() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    if (score > best) {
+      best = score;
+      localStorage.setItem('piano-best', best);
+      bestEl.textContent = best;
+    }
+    if (window.SFX) window.SFX.over();
+    ovTitle.textContent = '😵 游戏结束';
+    ovDesc.innerHTML = '你点了 <b>' + score + '</b> 个黑块' +
+      (score >= best && score > 0 ? '，新纪录！' : '');
+    startBtn.textContent = '再来一局';
+    overlay.classList.remove('hidden');
+  }
+
+  function start() {
+    measure();
+    score = 0;
+    speed = 120;
+    lastTime = 0;
+    scoreEl.textContent = '0';
+    buildRows();
+    running = true;
+    overlay.classList.add('hidden');
+    rafId = requestAnimationFrame(loop);
+  }
+
+  var origStart = start;
+  start = function () {
+    origStart();
+    bgm.restart();
+  };
+
+  startBtn.addEventListener('click', start);
+  boardEl.addEventListener('mousedown', onDown);
+  boardEl.addEventListener('touchstart', onDown, { passive: false });
+  boardEl.addEventListener('mousemove', function (e) { if (e.buttons === 1) onMove(e); });
+  boardEl.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
+
+  var rt;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () {
+      measure();
+      buildRows();
+    }, 150);
+  });
+
+  // 初始测量（开始前也摆个样子）
+  measure();
+  buildRows();
+})();
+</script>
+
+<script src="common.js"></script>
+</body>
+</html>
