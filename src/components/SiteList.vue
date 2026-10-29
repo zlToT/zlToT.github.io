@@ -27,7 +27,7 @@ function catLabel(key) {
     <BgEffect type="snow" />
     <div class="section-inner">
       <p class="section-eyebrow">SiteList</p>
-      <h2 class="section-title">有趣网站</h2>
+      <h2 class="section-title">收藏</h2>
       <p class="section-desc">
         收藏的一些好用的站点，按分类整理。点击卡片直接在新标签页访问。
       </p>

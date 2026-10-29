@@ -2,7 +2,7 @@
 // 通用 Canvas 背景动效组件
 // type:
 //   firefly   - 萤火虫：微光缓慢漫游闪烁（侧边栏，暖橙深色）
-//   snow      - 雪花：大小雪花缓缓下落带轻微摇摆（技能 / 小游戏 / 有趣网站页）
+//   snow      - 雪花：大小雪花缓缓下落带轻微摇摆（技能 / 游戏 / 收藏页）
 //   rain      - 流星雨：右上→左下清澈流星 + 渐变光带拖尾 + 星尘（《你的名字》质感，浅底适配）
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 
@@ -126,6 +126,24 @@ function init() {
     drops = new Array(dropCount).fill(0).map(() => spawnMeteor(true))
     dust = []
     initStars()
+  } else if (t === 'bubbles') {
+    // 实验室：烧瓶冒泡（半透明气泡上升）
+    const count = w < 768 ? 22 : 36
+    particles = new Array(count).fill(0).map(() => spawnBubble(true))
+  }
+}
+
+// 气泡：半透明、带高光，从底部缓缓上升并左右轻摆
+function spawnBubble(anywhere) {
+  const r = 3 + Math.random() * 9
+  return {
+    x: Math.random() * w,
+    y: anywhere ? Math.random() * h : h + r + 5,
+    r,
+    vy: 0.4 + Math.random() * 0.7,
+    ph: Math.random() * 6.28,
+    sway: 0.3 + Math.random() * 0.5,
+    c: Math.random() < 0.5 ? '120,190,200' : '140,200,160',
   }
 }
 
@@ -165,6 +183,25 @@ function draw(now) {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.283); ctx.fill()
     })
     ctx.globalAlpha = 1; ctx.shadowBlur = 0
+  }
+
+  else if (t === 'bubbles') {
+    particles.forEach((p) => {
+      p.y -= p.vy
+      p.x += Math.sin(now / 900 + p.ph) * p.sway
+      if (p.y < -p.r - 5) {
+        Object.assign(p, spawnBubble(false))
+      }
+      // 气泡描边
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283)
+      ctx.strokeStyle = `rgba(${p.c},0.5)`
+      ctx.lineWidth = 1.2
+      ctx.stroke()
+      // 左上高光
+      ctx.beginPath(); ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.25, 0, 6.283)
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'
+      ctx.fill()
+    })
   }
 
   else if (t === 'rain') {

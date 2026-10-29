@@ -3,8 +3,11 @@ import { onMounted } from 'vue'
 import SideNav from './components/SideNav.vue'
 import Welcome from './components/Welcome.vue'
 import GameList from './components/GameList.vue'
+import LabList from './components/LabList.vue'
 import SiteList from './components/SiteList.vue'
 import Contact from './components/Contact.vue'
+// 音效静音按钮随点击音效一起暂时隐藏，需要时恢复
+// import SoundToggle from './components/SoundToggle.vue'
 
 onMounted(() => {
   const hash = window.location.hash
@@ -25,9 +28,11 @@ onMounted(() => {
 
 <template>
   <SideNav />
+  <!-- <SoundToggle /> 音效停用期间隐藏 -->
   <main class="main-content">
     <Welcome />
     <GameList />
+    <LabList />
     <SiteList />
     <Contact />
     <footer class="site-footer">

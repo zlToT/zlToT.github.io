@@ -11,7 +11,7 @@ const gameEmoji = { snake: '🐍', tetris: '🧩', mole: '🔨', tile: '🔢', m
     <BgEffect type="rain" />
     <div class="section-inner">
       <p class="section-eyebrow">GameList</p>
-      <h2 class="section-title">我的小游戏</h2>
+      <h2 class="section-title">我的游戏</h2>
       <p class="section-desc">
         用代码与创意打磨的小玩具，点击卡片在当前页进入游玩。
       </p>

@@ -3,17 +3,18 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { games } from '../data/siteData'
 
 // 首页欢迎板块（占位文案，替换成你自己的介绍）
-// 网页小游戏数量动态读 games 数组长度，新增游戏自动更新
+// 网页游戏数量动态读 games 数组长度，新增游戏自动更新
 const stats = [
   { value: '6', suffix: '年', label: '游戏开发' },
   { value: '10+', suffix: '个', label: '游戏上线项目' },
-  { value: String(games.length), suffix: '个', label: '网页小游戏' },
+  { value: String(games.length), suffix: '个', label: '网页游戏' },
   { value: '∞', suffix: '', label: '学习热情' },
 ]
 
 const quickLinks = [
-  { id: 'games', label: '去玩小游戏', primary: true },
-  { id: 'sites', label: '有趣网站', primary: false },
+  { id: 'games', label: '去玩游戏', primary: true },
+  { id: 'labs', label: '实验室', primary: false },
+  { id: 'sites', label: '我的收藏', primary: false },
   { id: 'contact', label: '联系方式', primary: false },
 ]
 
@@ -118,7 +119,7 @@ onBeforeUnmount(() => {
           <span class="grad-text">用代码记录每一次迭代。</span>
         </h1>
         <p class="welcome-desc">
-          一名热爱创造的游戏开发工程师。从一行代码到一个小游戏，
+          一名热爱创造的游戏开发工程师。从一行代码到一个游戏，
           从灵光一闪到一个完整站点 —— 我把每一次尝试都留在这里，
           供你翻阅，也供未来的自己回望。
         </p>

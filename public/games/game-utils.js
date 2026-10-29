@@ -1,5 +1,5 @@
 // ============================================================
-// 小游戏公共工具（ES Module）
+// 游戏公共工具（ES Module）
 // 用法：
 //   import { initGamePage } from './game-utils.js';
 //   const { bgm } = initGamePage({ bgmSrc: '../music/bgm_xxx.mp3', emojis: ['🌿','🐑'] });

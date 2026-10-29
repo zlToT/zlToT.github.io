@@ -159,6 +159,6 @@ description: 网站视觉设计与优化（大改版+小打磨都行）。当用
 - 全局背景：`radial-gradient(ellipse at 30% 40%, #E8F3EC, #D4E8DA)`
 - 按钮：主绿底 `#2F855A` 渐变 + 白字（参考站 active/contact 按钮配色）；标题渐变 `#1E4A2F→#2F855A`
 - 字体：系统字体栈（PingFang SC / Microsoft YaHei / Segoe UI）
-- 布局：左侧导航（250px，头像 logo）+ 五个锚点板块（首页 / 技能 / 小游戏 / 有趣网站 / 联系方式），移动端顶部头像区+直排按钮（无汉堡）
-- 已有效果：首页代码雨（canvas Matrix 风）、全屏 scroll-snap 翻页、大数字统计块、渐变标题、深色玻璃卡片、绿色光晕背景、技能板块折叠动画、小游戏独立页面
-- 全局样式：`src/style.css`（CSS 变量 token 统一管理配色，改配色优先改这里；独立小游戏页 `public/games/*.html` 需单独替换颜色）
+- 布局：左侧导航（250px，头像 logo）+ 五个锚点板块（首页 / 技能 / 游戏 / 收藏 / 联系方式），移动端顶部头像区+直排按钮（无汉堡）
+- 已有效果：首页代码雨（canvas Matrix 风）、全屏 scroll-snap 翻页、大数字统计块、渐变标题、深色玻璃卡片、绿色光晕背景、技能板块折叠动画、游戏独立页面
+- 全局样式：`src/style.css`（CSS 变量 token 统一管理配色，改配色优先改这里；独立游戏页 `public/games/*.html` 需单独替换颜色）

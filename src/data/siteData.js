@@ -1,9 +1,9 @@
 // ============================================================
-// 网站数据配置：小游戏列表 + 有趣网站列表
-// 以后新增小游戏 / 网站，只需在这里加一条记录
+// 网站数据配置：游戏列表 + 实验室列表 + 收藏网站列表
+// 以后新增游戏 / 实验项目 / 网站，只需在这里加一条记录
 // ============================================================
 
-// 小游戏列表（新增游戏：1. 把静态文件放入 games/ 目录；2. 在此数组加一条）
+// 游戏列表（新增游戏：1. 把静态文件放入 games/ 目录；2. 在此数组加一条）
 export const games = [
   {
     name: '凡人·秘境苟道',
@@ -70,7 +70,18 @@ export const games = [
   },
 ]
 
-// 有趣网站分类（分类 key 与站点记录的 category 对应）
+// 收藏表（非游戏类的互动项目：新增项目在此数组加一条）
+export const labs = [
+  {
+    name: 'BeatHaus',
+    desc: '某不知名网页版 LiveHouse 演唱会模拟器：双唱盘搓碟、混音台、3D 演唱会舞台，音频实时驱动灯光、粒子与气球',
+    link: 'https://zlToT.github.io/beathaus/',
+    icon: 'beathaus',
+    tag: '音乐互动',
+  },
+]
+
+// 收藏网站分类（分类 key 与站点记录的 category 对应）
 export const siteCategories = [
   { key: 'all', label: '全部' },
   { key: 'ai', label: 'AI' },
@@ -80,7 +91,7 @@ export const siteCategories = [
   { key: 'learn', label: '学习' },
 ]
 
-// 有趣网站列表（新增收藏：在此数组加一条，category 用上方分类 key）
+// 网站列表（新增收藏：在此数组加一条，category 用上方分类 key）
 export const sites = [
   // ── ai ──
   {
