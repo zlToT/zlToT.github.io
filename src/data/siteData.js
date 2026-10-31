@@ -109,15 +109,21 @@ export const siteCategories = [
 export const sites = [
   // ── ai ──
   {
-    name: 'Ollama 中文站',
-    desc: 'Ollama 的中文资源与文档，本地运行和管理大语言模型',
-    link: 'https://ollamacn.github.io/',
-    category: 'ai',
-  },
-  {
     name: 'OpenAI Codex',
     desc: 'OpenAI 的 AI 代码助手，基于大模型辅助编程与代码生成',
     link: 'https://openai.com/zh-Hans-CN/codex/',
+    category: 'ai',
+  },
+  {
+    name: 'Claude Code',
+    desc: 'Anthropic 推出的终端 AI 编程 agent，可读写代码库、跑命令、提 PR',
+    link: 'https://code.claude.com',
+    category: 'ai',
+  },
+  {
+    name: 'DeepSeek Harness',
+    desc: 'DeepSeek 开源的 agent harness，基于 Cordis「一切皆插件」架构，支持桌面端与网页端',
+    link: 'https://www.deepseek.com/harness/',
     category: 'ai',
   },
   {
@@ -154,6 +160,12 @@ export const sites = [
     name: 'ClawHub',
     desc: 'AI 模型与工具集散地，提供模型分享、下载与协作功能',
     link: 'https://clawhub.ai/',
+    category: 'ai',
+  },
+  {
+    name: 'Ollama 中文站',
+    desc: 'Ollama 的中文资源与文档，本地运行和管理大语言模型',
+    link: 'https://ollamacn.github.io/',
     category: 'ai',
   },
 
@@ -343,15 +355,9 @@ export const sites = [
     category: 'tool',
   },
   {
-    name: 'remove.bg',
-    desc: '智能AI在线抠图，一键自动去除图片背景',
-    link: 'https://www.remove.bg/zh',
-    category: 'tool',
-  },
-  {
-    name: 'RegExr',
-    desc: '正则表达式在线测试与学习工具',
-    link: 'https://regexr.com',
+    name: 'FrameRonin',
+    desc: '视频转序列帧 · 抠图 · Sprite Sheet',
+    link: 'https://systemchester.github.io/FrameRonin/',
     category: 'tool',
   },
   {
