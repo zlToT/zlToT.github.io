@@ -28,7 +28,7 @@
     #hud {
       position: fixed;
       top: 12px;
-      left: 14px;
+      left: 64px;
       color: #9df3ff;
       font-size: 14px;
       pointer-events: none;
@@ -60,11 +60,46 @@
     #dustHud {
       position: fixed;
       top: 12px;
-      right: 14px;
+      right: 116px;
       color: #fd6;
       font-size: 14px;
       pointer-events: none;
       text-shadow: 0 0 6px #a60
+    }
+
+    .top-btn {
+      position: fixed;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(15, 25, 40, 0.7);
+      backdrop-filter: blur(10px);
+      color: #cfe;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 200;
+      display: grid;
+      place-items: center;
+    }
+
+    .top-btn:hover {
+      background: rgba(40, 80, 140, 0.8);
+    }
+
+    #backBtn {
+      top: 12px;
+      left: 12px
+    }
+
+    #muteBtn {
+      top: 12px;
+      right: 64px
+    }
+
+    #pauseBtn {
+      top: 12px;
+      right: 12px
     }
 
     #overlay {
@@ -181,6 +216,9 @@
 
 <body>
   <canvas id="c"></canvas>
+  <button id="backBtn" class="top-btn" title="返回">⬅</button>
+  <button id="muteBtn" class="top-btn" title="静音">🔊</button>
+  <button id="pauseBtn" class="top-btn" title="暂停">⏸</button>
   <div id="hud">
     分数 <span id="score">0</span> ｜ 黑洞 <span id="holes">2</span>
     <div id="fuelBar">
@@ -205,7 +243,22 @@
     const $ = id => document.getElementById(id);
     const rnd = (a, b) => a + Math.random() * (b - a);
 
-    // ===== 存档（局外养成）=====
+    // 移动端震动（不支持时静默失败）
+    function vib(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { } }
+
+    // ===== 静音 =====
+    let muted = localStorage.getItem("gw_muted") === "1";
+    function syncMuteBtn() { $("muteBtn").textContent = muted ? "🔇" : "🔊"; }
+    function toggleMute() {
+      muted = !muted;
+      localStorage.setItem("gw_muted", muted ? "1" : "0");
+      syncMuteBtn();
+      if (muted && humGain) humGain.gain.value = 0;
+    }
+    syncMuteBtn();
+
+    // ===== 存档（局外养成，带版本号）=====
+    const SAVE_VER = 1;
     const COSTS = [10, 20, 35, 55, 80];
     const UPGRADES = [
       { key: "thrust", nm: "⚙️ 引擎强化", ds: "引力井推力 +8%/级", max: 5 },
@@ -215,15 +268,29 @@
       { key: "shield", nm: "🛡️ 应急护盾", ds: "抵消一次黑洞吞噬（每局一次）", max: 1, costs: [120] },
       { key: "plunder", nm: "🏴‍☠️ 掠夺者", ds: "圈内金色碎片星尘 +1/级", max: 4, costs: [20, 40, 70, 110] },
     ];
+    // 飞船外观（星尘解锁）
+    const SKINS = [
+      { id: "rust", nm: "🟫 锈橙原型", cost: 0, hull: "#d94a2a", edge: "#fa5", trail: "#089" },
+      { id: "cyan", nm: "🟦 青锋号", cost: 60, hull: "#0891b2", edge: "#67e8f9", trail: "#0ff" },
+      { id: "gold", nm: "🟨 星金号", cost: 150, hull: "#d97706", edge: "#fde68a", trail: "#fc6" },
+      { id: "void", nm: "🟪 虚空紫", cost: 300, hull: "#7c3aed", edge: "#c4b5fd", trail: "#a5f" },
+    ];
     let save;
+    function defaultSave() {
+      const s = { v: SAVE_VER, dust: 0, up: {}, skin: "rust" };
+      UPGRADES.forEach(u => s.up[u.key] = 0);
+      return s;
+    }
     function loadSave() {
       try { save = JSON.parse(localStorage.getItem("gw_meta")) || null; } catch (e) { save = null; }
-      if (!save || typeof save !== "object") save = { dust: 0, up: {} };
+      if (!save || typeof save !== "object" || save.v !== SAVE_VER) save = defaultSave();
       UPGRADES.forEach(u => { if (!Number.isInteger(save.up[u.key])) save.up[u.key] = 0; });
+      if (!SKINS.some(k => k.id === save.skin)) save.skin = "rust";
     }
     function persist() { localStorage.setItem("gw_meta", JSON.stringify(save)); }
     function lv(k) { return save.up[k]; }
     function upCost(u) { const l = lv(u.key); return u.costs ? u.costs[l] : COSTS[l]; }
+    function curSkin() { return SKINS.find(k => k.id === save.skin) || SKINS[0]; }
     function upDesc(u) {
       if (u.key === "thrust") return "推力 ×" + (1 + .08 * lv("thrust")).toFixed(2) + " → ×" + (1 + .08 * (lv("thrust") + 1)).toFixed(2);
       if (u.key === "fuel") return "初始燃料 " + (100 + 15 * lv("fuel")) + " → " + (100 + 15 * (lv("fuel") + 1));
@@ -235,9 +302,10 @@
     loadSave();
 
     // ===== 运行时状态 =====
-    let state = "title", holding = false;
+    let state = "title", holding = false, paused = false;
     let player, fragments, holes, particles, stars, fuel, fuelMax, score, best = +localStorage.getItem("gw_best") || 0;
     let camX = 0, camY = 0, shake = 0, dustRun = 0, shieldUp = false, invuln = 0, trail = [];
+    let asteroids = [], clouds = [];
     const mouse = { x: 0, y: 0 };
 
     stars = [];
@@ -265,6 +333,20 @@
       fragments = []; holes = []; particles = []; trail = [];
       fuelMax = 100 + 15 * lv("fuel"); fuel = fuelMax;
       score = 0; shake = 0; dustRun = 0; shieldUp = d.hasShield; invuln = 0;
+      // 陨石：缓慢漂移，撞上掉燃料不致死
+      asteroids = [];
+      for (let i = 0; i < 5; i++) {
+        let x, y;
+        do { x = rnd(150, W - 150); y = rnd(150, H - 150); } while (Math.hypot(x - player.x, y - player.y) < 400);
+        asteroids.push({ x, y, vx: rnd(-25, 25), vy: rnd(-25, 25), r: rnd(18, 30), rot: rnd(0, 6), vr: rnd(-1, 1) });
+      }
+      // 星尘云：云内推力减弱，星尘收益 ×2
+      clouds = [];
+      for (let i = 0; i < 4; i++) {
+        let x, y;
+        do { x = rnd(200, W - 200); y = rnd(200, H - 200); } while (Math.hypot(x - player.x, y - player.y) < 450);
+        clouds.push({ x, y, r: rnd(110, 160), ph: rnd(0, 6) });
+      }
       for (let i = 0; i < 2; i++)spawnHole(true);
       for (let i = 0; i < 10; i++)spawnFragment();
     }
@@ -288,8 +370,8 @@
       if (!holes.length) { spawnFragment(); return; }
       const h = holes[Math.floor(Math.random() * holes.length)];
       const a = rnd(0, 6.28), dist = rnd(h.pull * 0.5, h.pull * 0.78);
-      const x = Math.max(40, Math.min(W - 40, h.x + Math.cos(a) * dist));
-      const y = Math.max(40, Math.min(H - 40, h.y + Math.sin(a) * dist));
+      const x = Math.max(40, Math.min(W - 80, h.x + Math.cos(a) * dist));
+      const y = Math.max(40, Math.min(H - 80, h.y + Math.sin(a) * dist));
       fragments.push({ x, y, ph: rnd(0, 6), risky: true });
     }
     function spawnAny() {
@@ -310,7 +392,8 @@
       }
     }
     function beep(f, d, type = "sine", vol = .18, slide = 0) {
-      if (!AC) return; const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+      if (muted || !AC) return;
+      const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
       o.type = type; o.frequency.setValueAtTime(f, t);
       if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(slide, 1), t + d);
       g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
@@ -322,11 +405,12 @@
     const sDeath = () => { beep(180, .7, "sawtooth", .25, 35); beep(90, .9, "square", .15, 25); };
     const sBuy = () => { beep(520, .08, "triangle", .15, 780); setTimeout(() => beep(880, .12, "triangle", .15), 80); };
     const sShield = () => { beep(300, .3, "square", .2, 900); };
+    const sBump = () => { beep(120, .25, "square", .2, 60); };
 
     // ===== 输入 =====
     function toWorld(cx, cy) { return { x: cx + camX, y: cy + camY }; }
     cv.addEventListener("pointerdown", e => {
-      audio(); if (state !== "playing") return;
+      audio(); if (state !== "playing" || paused) return;
       holding = true; Object.assign(mouse, toWorld(e.clientX, e.clientY));
     });
     cv.addEventListener("pointermove", e => { Object.assign(mouse, toWorld(e.clientX, e.clientY)); });
@@ -339,7 +423,7 @@
     // ===== 界面 =====
     const panel = $("panel");
     function showTitle(msg, reason) {
-      state = "title";
+      state = "title"; paused = false;
       $("overlay").style.display = "flex";
       panel.style.display = "block";
       panel.innerHTML =
@@ -347,7 +431,8 @@
         "<p>" + (msg || "按住鼠标牵引自己，松手滑行<br>" +
           "收集碎片补充燃料并赚取<span style='color:#fd6'>星尘</span><br>" +
           "<span style='color:#fc6'>金色碎片</span>藏在黑洞引力圈里——价值×3<br>" +
-          "贴着<span style='color:#a5f'>黑洞边缘</span>擦过可以<span style='color:#5ff'>引力弹弓</span>加速！") + "</p>" +
+          "贴着<span style='color:#a5f'>黑洞边缘</span>擦过可以<span style='color:#5ff'>引力弹弓</span>加速！<br>" +
+          "☁️ 星尘云里收益翻倍，🪨 陨石只撞漏燃料不致命") + "</p>" +
         (reason ? "<div id='reason'>" + reason + "</div>" : "") +
         "<div style='color:#fd6;font-size:13px;margin-bottom:12px'>✦ 星尘库存 " + save.dust + "</div>" +
         "<button id='btn'>开 始</button>" +
@@ -367,24 +452,80 @@
         html += "<div class='shopItem'>" +
           "<div class='info'><div class='nm'>" + u.nm + " <span class='pips'>" + pips + "</span></div>" +
           "<div class='ds'>" + u.ds + "</div>" +
-          "<div class='lv'>" + (maxed ? "已满级" : (u.key === "shield" ? "状态：" : upDesc(u))) + "</div></div>" +
+          "<div class='lv'>" + (maxed ? "已满级" : upDesc(u)) + "</div></div>" +
           "<button data-i='" + i + "' " + (maxed || save.dust < cost ? "disabled" : "") + ">" +
-          (maxed ? "MAX" : "✦" + cost + "</button>") +
+          (maxed ? "MAX" : "✦" + cost) + "</button>" +
+          "</div>";
+      });
+      // 飞船外观
+      html += "<h1 style='font-size:20px;margin-top:14px'>飞船外观</h1>";
+      SKINS.forEach((k, i) => {
+        const owned = save.dust >= k.cost || SKINS[0].id === k.id || save.skin === k.id ||
+          (k.cost === 0);
+        const equipped = save.skin === k.id;
+        html += "<div class='shopItem'>" +
+          "<div class='info'><div class='nm'>" + k.nm + "</div>" +
+          "<div class='ds'>解锁价 ✦" + k.cost + "</div></div>" +
+          "<button data-skin='" + i + "' " + (equipped ? "disabled" : "") + ">" +
+          (equipped ? "已装备" : (save.dust < k.cost ? "✦" + k.cost : "购买/装备")) + "</button>" +
           "</div>";
       });
       html += "<button id='btnBack' style='margin-top:10px'>返 回</button>";
       panel.innerHTML = html;
-      panel.querySelectorAll(".shopItem button").forEach(b => {
+      panel.querySelectorAll("[data-i]").forEach(b => {
         b.onclick = () => {
           const u = UPGRADES[+b.dataset.i], cost = upCost(u);
           if (save.dust < cost || lv(u.key) >= u.max) return;
           save.dust -= cost; save.up[u.key]++; persist(); sBuy(); showShop();
         };
       });
+      panel.querySelectorAll("[data-skin]").forEach(b => {
+        b.onclick = () => {
+          const k = SKINS[+b.dataset.skin];
+          if (save.skin === k.id) return;
+          if (save.dust < k.cost) return;
+          if (save.skin !== k.id && k.cost > 0 && !b.dataset.bought) {
+            save.dust -= k.cost;
+          }
+          save.skin = k.id; persist(); sBuy(); showShop();
+        };
+      });
       $("btnBack").onclick = () => showTitle();
     }
+    // 暂停菜单
+    let resetArmed = false;
+    function showPause() {
+      if (state !== "playing") return;
+      paused = true; resetArmed = false;
+      $("overlay").style.display = "flex";
+      panel.style.display = "block";
+      panel.innerHTML =
+        "<h1 style='font-size:26px'>已 暂 停</h1>" +
+        "<button id='rBtn'>▶ 继续</button>" +
+        "<button id='mBtn'>" + (muted ? "🔇 取消静音" : "🔊 静音") + "</button>" +
+        "<button id='qBtn'>🏳 放弃本局</button>" +
+        "<button id='rsBtn'>🗑 重置存档</button>";
+      $("rBtn").onclick = hidePause;
+      $("mBtn").onclick = () => { toggleMute(); showPause(); };
+      $("qBtn").onclick = () => { hidePause(); showTitle("已放弃本局，本局星尘未结算"); };
+      $("rsBtn").onclick = e => {
+        if (!resetArmed) {
+          resetArmed = true;
+          e.target.textContent = "⚠ 再点一次确认重置";
+          return;
+        }
+        save = defaultSave(); persist();
+        hidePause(); showTitle();
+      };
+    }
+    function hidePause() {
+      paused = false;
+      $("overlay").style.display = "none";
+      panel.style.display = "none";
+    }
     function die(reason) {
-      state = "dead"; holding = false; shake = 18; sDeath(); if (humGain) humGain.gain.value = 0;
+      state = "dead"; holding = false; shake = 18; vib(200); sDeath();
+      if (humGain) humGain.gain.value = 0;
       for (let i = 0; i < 60; i++) {
         const a = rnd(0, 6.28), v = rnd(30, 260);
         particles.push({
@@ -403,20 +544,21 @@
     // ===== 逻辑 =====
     function update(dt) {
       const p = player, d = derived();
+      const inCloud = clouds.some(c => Math.hypot(c.x - p.x, c.y - p.y) < c.r);
       if (holding && fuel > 0) {
         const dx = mouse.x - p.x, dy = mouse.y - p.y, dist = Math.hypot(dx, dy);
         if (dist > 6) {
-          const a = d.thrust * Math.min(1, dist / 400);
+          const a = d.thrust * (inCloud ? .7 : 1) * Math.min(1, dist / 400);
           p.vx += dx / dist * a * dt; p.vy += dy / dist * a * dt;
         }
         fuel -= 9 * dt;
-        if (humGain) humGain.gain.value = .07;
+        if (humGain && !muted) humGain.gain.value = .07;
         for (let i = 0; i < 2; i++)particles.push({
           x: p.x + rnd(-4, 4), y: p.y + rnd(-4, 4),
           vx: -p.vx * .2 + rnd(-30, 30), vy: -p.vy * .2 + rnd(-30, 30), life: rnd(.2, .5), c: "#0cf", r: rnd(1, 2.5)
         });
       } else if (humGain) humGain.gain.value = 0;
-      fuel -= 0.5 * dt;
+      // 休闲版：取消待机耗油，只有推进时才烧燃料
       if (invuln > 0) invuln -= dt;
       // 磁力场
       if (d.magnet > 0) {
@@ -431,7 +573,7 @@
         const dx = h.x - p.x, dy = h.y - p.y, dist = Math.hypot(dx, dy);
         if (dist < h.core + 8) {
           if (shieldUp) {
-            shieldUp = false; invuln = 1.5; sShield(); shake = 12;
+            shieldUp = false; invuln = 1.5; sShield(); shake = 12; vib(80);
             p.vx = dx / dist * 450; p.vy = dy / dist * 450;
             for (let k = 0; k < 24; k++) {
               const a = rnd(0, 6.28);
@@ -446,24 +588,22 @@
         if (dist < h.pull) {
           const a = Math.min(200, 1.6e6 / (dist * dist));
           p.vx += dx / dist * a * dt; p.vy += dy / dist * a * dt;
-          // 吸积阻力：向内速度封顶260，保证任何深度都能挣扎逃逸
-          const spIn = (p.vx * dx + p.vy * dy) / dist;      // 朝向黑洞的速度分量
+          const spIn = (p.vx * dx + p.vy * dy) / dist;
           if (spIn > 260) {
             const ex = spIn - 260;
             p.vx -= dx / dist * ex; p.vy -= dy / dist * ex;
           }
         }
-        // ===== 引力弹弓判定 =====
-        const grazeR = h.core + 70;                 // 擦过区：核心外~核心+70
+        const grazeR = h.core + 70;
         const sp0 = Math.hypot(p.vx, p.vy);
         if (dist < grazeR && dist > h.core + 10 && sp0 > 120) {
-          h.grazed = true;                        // 进入擦过区，标记
-        } else if (h.grazed && dist > grazeR + 40) {     // 飞出擦过区且没死 → 甩出奖励
+          h.grazed = true;
+        } else if (h.grazed && dist > grazeR + 40) {
           h.grazed = false;
           if (sp0 > 100) {
             const boost = Math.min(1.35, 1 + 40 / sp0 + .2);
             p.vx *= boost; p.vy *= boost;
-            sSling(); shake = Math.max(shake, 5);
+            sSling(); shake = Math.max(shake, 5); vib(30);
             for (let k = 0; k < 20; k++) {
               const a = rnd(0, 6.28);
               particles.push({
@@ -474,11 +614,24 @@
           }
         }
       }
+      // 陨石：漂移 + 碰撞掉燃料
+      for (const a of asteroids) {
+        a.x += a.vx * dt; a.y += a.vy * dt; a.rot += a.vr * dt;
+        if (a.x < 100 || a.x > W - 100) a.vx *= -1;
+        if (a.y < 100 || a.y > H - 100) a.vy *= -1;
+        const dd = Math.hypot(a.x - p.x, a.y - p.y);
+        if (dd < a.r + p.r && invuln <= 0) {
+          invuln = 1; fuel = Math.max(0, fuel - 18);
+          const ang = Math.atan2(p.y - a.y, p.x - a.x);
+          p.vx = Math.cos(ang) * 320; p.vy = Math.sin(ang) * 320;
+          shake = 10; sBump(); vib(60);
+          particles.push({ x: p.x, y: p.y, vx: 0, vy: 0, life: .3, c: "#fa5", r: 5 });
+        }
+      }
       const sp = Math.hypot(p.vx, p.vy);
-      if (sp > 560) { p.vx *= 560 / sp; p.vy *= 560 / sp; }    // 弹弓后限速略放宽，保留爽感
+      if (sp > 560) { p.vx *= 560 / sp; p.vy *= 560 / sp; }
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.ang += dt * (.5 + sp * .002);
-      // 拖尾
       trail.push({ x: p.x, y: p.y, life: .4 });
       for (let i = trail.length - 1; i >= 0; i--) { trail[i].life -= dt; if (trail[i].life <= 0) trail.splice(i, 1); }
       if (p.x < p.r) { p.x = p.r; p.vx *= -.7; } if (p.x > W - p.r) { p.x = W - p.r; p.vx *= -.7; }
@@ -487,8 +640,9 @@
       for (let i = fragments.length - 1; i >= 0; i--) {
         const f = fragments[i];
         if (Math.hypot(f.x - p.x, f.y - p.y) < 26) {
-          fragments.splice(i, 1);
-          const gain = f.risky ? (3 + d.plunder) : 1;
+          fragments.splice(i);
+          const cloudMult = inCloud ? 2 : 1;
+          const gain = (f.risky ? (3 + d.plunder) : 1) * cloudMult;
           score += f.risky ? 3 : 1; dustRun += gain;
           fuel = Math.min(fuelMax, fuel + d.refill * (f.risky ? 1.5 : 1));
           f.risky ? sRisky() : sCollect(); shake = Math.max(shake, f.risky ? 6 : 3);
@@ -514,6 +668,30 @@
       shake = Math.max(0, shake - dt * 30);
     }
 
+    // 屏幕边缘指引箭头（屏幕空间）
+    function edgeArrow(worldX, worldY, color, label) {
+      const sx = worldX - camX, sy = worldY - camY;
+      const m = 46;
+      if (sx > m && sx < CW - m && sy > m && sy < CH - m) return; // 屏内不画
+      const cx = CW / 2, cy = CH / 2;
+      const ang = Math.atan2(sy - cy, sx - cx);
+      const rx = Math.max(0, (CW / 2 - m)), ry = Math.max(0, (CH / 2 - m));
+      // 与矩形边界求交
+      const ex = cx + Math.cos(ang) * rx, ey = cy + Math.sin(ang) * ry;
+      const ax = Math.min(CW - m, Math.max(m, ex)), ay = Math.min(CH - m, Math.max(m, ey));
+      ctx.save();
+      ctx.translate(ax, ay); ctx.rotate(ang);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = .85;
+      ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-6, -8); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fill();
+      if (label) {
+        ctx.globalAlpha = .9; ctx.font = "12px monospace"; ctx.textAlign = "center";
+        ctx.fillText(label, 0, -14);
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
     // ===== 绘制 =====
     function draw(t) {
       const sx = shake ? rnd(-shake, shake) : 0, sy = shake ? rnd(-shake, shake) : 0;
@@ -527,29 +705,49 @@
       }
       ctx.globalAlpha = 1;
       ctx.save(); ctx.translate(-camX + sx, -camY + sy);
+      // 星尘云
+      for (const c of clouds) {
+        const pu = 1 + Math.sin(t * .003 + c.ph) * .12;
+        const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r * pu);
+        g.addColorStop(0, "rgba(250,204,21,.22)"); g.addColorStop(1, "rgba(250,204,21,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y, c.r * pu, 0, 6.29); ctx.fill();
+        ctx.fillStyle = "rgba(250,204,21,.5)"; ctx.font = "16px monospace";
+        ctx.textAlign = "center"; ctx.fillText("✦×2", c.x, c.y + 5);
+      }
+      // 陨石
+      for (const a of asteroids) {
+        ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
+        ctx.fillStyle = "#6b5d4f"; ctx.strokeStyle = "#9c8b78"; ctx.lineWidth = 2;
+        ctx.beginPath();
+        const n = 7;
+        for (let i = 0; i < n; i++) {
+          const ang = i / n * 6.28, rr = a.r * (0.85 + (i % 2) * .2);
+          i ? ctx.lineTo(Math.cos(ang) * rr, Math.sin(ang) * rr) : ctx.moveTo(Math.cos(ang) * rr, Math.sin(ang) * rr);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "rgba(0,0,0,.25)";
+        ctx.beginPath(); ctx.arc(-a.r * .2, -a.r * .2, a.r * .25, 0, 6.28); ctx.fill();
+        ctx.restore();
+      }
       // 黑洞
       for (const h of holes) {
         const g = ctx.createRadialGradient(h.x, h.y, h.core, h.x, h.y, h.pull);
         g.addColorStop(0, "rgba(140,60,255,.35)"); g.addColorStop(1, "rgba(140,60,255,0)");
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, h.pull, 0, 6.29); ctx.fill();
-        // 擦过区提示环（弹弓区）
         ctx.strokeStyle = "rgba(255,200,100,.22)"; ctx.lineWidth = 2; ctx.setLineDash([4, 10]);
         ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 70, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
-        // ===== 死亡警戒圈（新加的）=====
         ctx.strokeStyle = "rgba(255,80,80,.35)"; ctx.lineWidth = 1.5; ctx.setLineDash([3, 7]);
         ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 30, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
-        // ================================
-
         ctx.strokeStyle = "rgba(160,80,255,.5)"; ctx.lineWidth = 1.5;
         for (let i = 0; i < 3; i++) {
           ctx.beginPath();
-          ctx.ellipse(h.x, h.y, h.core + 14 + i * 14, (h.core + 14 + i * 14) * .45, h.rot + i, 0, 6.29); ctx.stroke();
+          ctx.ellipse(h.x, h.y, h.core + 14 + i * 14, (h.core + 14 + i * 14) * .45, h.rot + i, 0, 6.29);
+          ctx.stroke();
         }
         ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(h.x, h.y, h.core, 0, 6.29); ctx.fill();
         ctx.strokeStyle = "#a5f"; ctx.lineWidth = 2; ctx.stroke();
       }
-
-      // 碎片（金色=贪心碎片）
+      // 碎片
       for (const f of fragments) {
         const pu = 1 + Math.sin(t * .004 + f.ph) * .25, s = (f.risky ? 11 : 9) * pu;
         const col = f.risky ? "252,200,90" : "0,255,255";
@@ -571,16 +769,16 @@
       ctx.globalAlpha = 1;
       if (state === "playing") {
         const p = player;
-        // 高速拖尾（弹弓后变金色）
+        const sk = curSkin();
         const sp = Math.hypot(p.vx, p.vy);
         for (const q of trail) {
           ctx.globalAlpha = q.life * 1.8;
-          ctx.fillStyle = sp > 420 ? "#fc6" : "#089";
+          ctx.fillStyle = sp > 420 ? "#fc6" : sk.trail;
           ctx.beginPath(); ctx.arc(q.x, q.y, 3 * q.life / .4, 0, 6.29); ctx.fill();
         }
         ctx.globalAlpha = 1;
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
-        ctx.fillStyle = "#d94"; ctx.strokeStyle = "#fa5"; ctx.lineWidth = 1.5;
+        ctx.fillStyle = sk.hull; ctx.strokeStyle = sk.edge; ctx.lineWidth = 1.5;
         ctx.beginPath(); p.verts.forEach((v, i) => {
           const x = Math.cos(v.a) * v.d, y = Math.sin(v.a) * v.d;
           i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
@@ -599,13 +797,23 @@
       ctx.restore();
       ctx.strokeStyle = "rgba(80,120,200,.3)"; ctx.lineWidth = 3;
       ctx.strokeRect(-camX + sx, -camY + sy, W, H);
+      // 边缘指引：最近碎片 + 黑洞警告
+      if (state === "playing" && fragments.length) {
+        let nf = fragments[0], nd = Math.hypot(nf.x - player.x, nf.y - player.y);
+        for (const f of fragments) {
+          const dd = Math.hypot(f.x - player.x, f.y - player.y);
+          if (dd < nd) { nd = dd; nf = f; }
+        }
+        edgeArrow(nf.x, nf.y, "rgba(34,211,238,.9)", fuel < fuelMax * .3 ? "缺油!" : "");
+        for (const h of holes) edgeArrow(h.x, h.y, "rgba(248,113,113,.75)");
+      }
     }
 
     // ===== 主循环 =====
     let last = performance.now();
     function loop(t) {
-      const dt = Math.min(.033, (t - last) / 1000); last = t;
-      if (state === "playing") update(dt);
+      const dt = Math.min(.033, (t - last) / 100); last = t;
+      if (state === "playing" && !paused) update(dt);
       draw(t);
       $("score").textContent = score;
       $("holes").textContent = holes.length;
@@ -613,6 +821,15 @@
       $("dustRun").textContent = dustRun;
       requestAnimationFrame(loop);
     }
+    // 顶部按钮
+    $("backBtn").onclick = () => { location.href = "../index.html#games"; };
+    $("muteBtn").onclick = toggleMute;
+    $("pauseBtn").onclick = showPause;
+    addEventListener("keydown", e => {
+      if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+        if (paused) hidePause(); else showPause();
+      }
+    });
     $("best").textContent = best ? ("最高纪录 " + best) : "";
     reset(); state = "title";
     showTitle();

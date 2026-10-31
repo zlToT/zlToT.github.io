@@ -28,7 +28,7 @@
     #hud {
       position: fixed;
       top: 12px;
-      left: 14px;
+      left: 64px;
       color: #9df3ff;
       font-size: 14px;
       pointer-events: none;
@@ -61,8 +61,7 @@
     }
 
     #xpBar {
-      border-color: #3a3;
-      margin-top: 4px
+      border-color: #3a3
     }
 
     #xpFill {
@@ -80,7 +79,7 @@
     #dustHud {
       position: fixed;
       top: 12px;
-      right: 14px;
+      right: 116px;
       color: #fd6;
       font-size: 14px;
       text-align: right;
@@ -97,6 +96,41 @@
       color: #fff;
       font-size: 16px;
       font-weight: bold
+    }
+
+    .top-btn {
+      position: fixed;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(15, 25, 40, 0.7);
+      backdrop-filter: blur(10px);
+      color: #cfe;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 200;
+      display: grid;
+      place-items: center;
+    }
+
+    .top-btn:hover {
+      background: rgba(40, 80, 140, 0.8);
+    }
+
+    #backBtn {
+      top: 12px;
+      left: 12px
+    }
+
+    #muteBtn {
+      top: 12px;
+      right: 64px
+    }
+
+    #pauseBtn {
+      top: 12px;
+      right: 12px
     }
 
     #overlay {
@@ -127,8 +161,7 @@
       font-size: 30px;
       color: #7df;
       letter-spacing: 6px;
-      margin-bottom: 8px;
-      text-shadow: 0 0 14px #08f
+      margin-bottom: 8px
     }
 
     #panel p {
@@ -150,7 +183,7 @@
       margin: 4px
     }
 
-    #panel button:hover:not(:disabled) {
+    #panel button:hover {
       background: #0d4a7a;
       box-shadow: 0 0 16px #0af
     }
@@ -239,11 +272,27 @@
       font-size: 11px;
       letter-spacing: 2px
     }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      width: 320px;
+      margin: 6px auto;
+      font-size: 14px;
+      color: #9bc
+    }
+
+    .stat-row b {
+      color: #fd6
+    }
   </style>
 </head>
 
 <body>
   <canvas id="c"></canvas>
+  <button id="backBtn" class="top-btn" title="返回">⬅</button>
+  <button id="muteBtn" class="top-btn" title="静音">🔊</button>
+  <button id="pauseBtn" class="top-btn" title="暂停">⏸</button>
   <div id="hud">
     <span id="timer">00:00</span> ｜ 分数 <span id="score">0</span> ｜ 深度 <span id="depth">1</span> ｜ 击杀 <span
       id="kills">0</span>
@@ -276,7 +325,22 @@
     const rnd = (a, b) => a + Math.random() * (b - a);
     const RUN_LEN = 600; // 10分钟撤离
 
-    // ===== 局外存档 =====
+    // 移动端震动
+    function vib(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { } }
+
+    // ===== 静音 =====
+    let muted = localStorage.getItem("gw_muted2") === "1";
+    function syncMuteBtn() { $("muteBtn").textContent = muted ? "🔇" : "🔊"; }
+    function toggleMute() {
+      muted = !muted;
+      localStorage.setItem("gw_muted2", muted ? "1" : "0");
+      syncMuteBtn();
+      if (muted && humGain) humGain.gain.value = 0;
+    }
+    syncMuteBtn();
+
+    // ===== 局外存档（带版本号）=====
+    const SAVE_VER = 1;
     const COSTS = [10, 20, 35, 55, 80];
     const UPGRADES = [
       { key: "thrust", nm: "⚙️ 引擎强化", ds: "推力 +8%/级", max: 5 },
@@ -287,9 +351,14 @@
       { key: "plunder", nm: "🏴‍☠️ 掠夺者", ds: "金色碎片星尘 +1/级", max: 4, costs: [20, 40, 70, 110] },
     ];
     let save;
+    function defaultSave() {
+      const s = { v: SAVE_VER, dust: 0, up: {} };
+      UPGRADES.forEach(u => s.up[u.key] = 0);
+      return s;
+    }
     function loadSave() {
       try { save = JSON.parse(localStorage.getItem("gw_meta2")) || null; } catch (e) { save = null; }
-      if (!save || typeof save !== "object") save = { dust: 0, up: {} };
+      if (!save || typeof save !== "object" || save.v !== SAVE_VER) save = defaultSave();
       UPGRADES.forEach(u => { if (!Number.isInteger(save.up[u.key])) save.up[u.key] = 0; });
     }
     function persist() { localStorage.setItem("gw_meta2", JSON.stringify(save)); }
@@ -297,62 +366,87 @@
     function upCost(u) { const l = lv(u.key); return u.costs ? u.costs[l] : COSTS[l]; }
     loadSave();
 
-    // ===== 局内升级池（AOE强力件） =====
+    // ===== 局内升级池（AOE/单体两条 build 线，数值见各 apply）=====
     const RUNUP = [
-      { id: "firerate", nm: "🔥 速射机构", ds: "射击间隔 -18%", max: 5, apply: r => r.cd *= 0.82 },
-      { id: "dmg", nm: "💥 弹头强化", ds: "所有伤害 +35%", max: 5, apply: r => r.dmgMul *= 1.35 },
+      { id: "firerate", nm: "🔥 速射机构", ds: "射击间隔 -15%", max: 5, apply: r => r.cd *= 0.85 },
+      { id: "dmg", nm: "💥 弹头强化", ds: "所有伤害 +30%", max: 5, apply: r => r.dmgMul *= 1.3 },
       { id: "multi", nm: "🔱 多重炮", ds: "齐射 +1 发（平行弹幕）", max: 3, apply: r => r.multi += 1 },
       { id: "pierce", nm: "🎯 穿透弹头", ds: "子弹贯穿 +2 个敌人", max: 3, apply: r => r.pierce += 2 },
-      { id: "boom", nm: "💣 爆破弹头", ds: "子弹命中爆炸！范围+威力提升", max: 4, apply: r => { r.boom = r.boom ? r.boom + 35 : 90; r.boomLvl++; } },
+      { id: "boom", nm: "💣 爆破弹头", ds: "子弹命中爆炸！范围+威力提升", max: 4, apply: r => { r.boom = r.boom ? r.boom + 30 : 80; r.boomLvl++; } },
       { id: "nova", nm: "🌟 冲击新星", ds: "周期冲击波：高伤+击退", max: 4, apply: r => r.nova += 1 },
       { id: "chain", nm: "⚡ 连锁闪电", ds: "电弧在敌人间跳跃，+1 跳", max: 4, apply: r => r.chain += 1 },
-      { id: "engine", nm: "🚀 引擎过载", ds: "牵引推力 +12%", max: 5, apply: r => r.engine *= 1.12 },
-      { id: "regen", nm: "♻️ 能量循环", ds: "低能量保底回充速度 +25%", max: 4, apply: r => r.regen *= 1.25 },
+      { id: "orbital", nm: "🛰️ 轨道打击", ds: "卫星锁定+1，周期性天降轰炸", max: 3, apply: r => r.orbital += 1 },
+      { id: "torpedo", nm: "🕳️ 湮灭鱼雷", ds: "鱼雷+1 枚，命中坍缩爆吸敌群", max: 3, apply: r => r.torpedo += 1 },
+      { id: "engine", nm: "🚀 引擎过载", ds: "牵引推力 +10%", max: 5, apply: r => r.engine *= 1.1 },
+      { id: "regen", nm: "♻️ 能量循环", ds: "低能量保底回充速度 +20%", max: 4, apply: r => r.regen *= 1.2 },
       { id: "repair", nm: "🛠️ 紧急维修", ds: "最大船体 +1 并完全修复", max: 9, apply: () => { maxHp++; hp = maxHp; } },
       { id: "shieldc", nm: "🛡️ 应急护盾", ds: "立即获得一层护盾", max: 9, apply: () => { shieldUp = true; } },
     ];
     let run = null, runLv = null;
 
-    // ===== 刷怪导演：按分钟脚本 =====
-    // rate=每秒刷怪预算, cap=场上上限, w=种类权重, surge=该分钟开始的怪潮规模
-    const WAVES = [
-      { min: 0, cap: 30, rate: 2.2, w: { swarm: 1 } },
-      { min: 1, cap: 50, rate: 3.6, w: { swarm: 1 }, surge: 24 },
-      { min: 2, cap: 70, rate: 4.8, w: { swarm: 1, bomber: .3 }, surge: 28 },
-      { min: 3, cap: 90, rate: 6.0, w: { swarm: 1, bomber: .35, shooter: .3 }, surge: 32 },
-      { min: 4, cap: 120, rate: 7.6, w: { swarm: 1.2, bomber: .4, shooter: .4, tank: .15 }, surge: 40 },
-      { min: 5, cap: 150, rate: 9.2, w: { swarm: 1.2, bomber: .45, shooter: .45, tank: .2, splitter: .3 }, surge: 48 },
-      { min: 6, cap: 180, rate: 10.8, w: { swarm: 1.4, bomber: .5, shooter: .5, tank: .25, splitter: .4 }, surge: 56 },
-      { min: 7, cap: 210, rate: 12.4, w: { swarm: 1.5, bomber: .6, shooter: .55, tank: .3, splitter: .5 }, surge: 64 },
-      { min: 8, cap: 240, rate: 14.4, w: { swarm: 1.6, bomber: .7, shooter: .6, tank: .35, splitter: .6 }, surge: 72 },
-      { min: 9, cap: 260, rate: 17, w: { swarm: 2, bomber: .8, shooter: .7, tank: .4, splitter: .7 }, surge: 80 },
-    ];
+    // 升级经验需求表（V3：整体上调约 30%，表外按末项 +10 递增）
+    const XP_TABLE = [7, 9, 13, 17, 21, 26, 31, 38, 44, 52, 60, 69, 78];
+    function nextXpNeed(l) {
+      if (l <= XP_TABLE.length) return XP_TABLE[l - 1];
+      return XP_TABLE[XP_TABLE.length - 1] + (l - XP_TABLE.length) * 10;
+    }
 
-    function waveCfg() { const m = Math.min(9, Math.floor(elapsed / 60)); return WAVES[m]; }
+    // ===== 刷怪导演：按分钟脚本（怪种逐步解锁，怪潮平滑爬坡）=====
+    const WAVES = [
+      { min: 0, cap: 35, rate: 2.6, w: { swarm: 1 } },
+      { min: 1, cap: 55, rate: 4.2, w: { swarm: 1, bomber: .25 }, surge: 26 },
+      { min: 2, cap: 80, rate: 5.8, w: { swarm: 1, bomber: .3, shooter: .2 }, surge: 32 },
+      { min: 3, cap: 105, rate: 7.5, w: { swarm: 1.1, bomber: .35, shooter: .3, tank: .1 }, surge: 38 },
+      { min: 4, cap: 135, rate: 9.2, w: { swarm: 1.2, bomber: .4, shooter: .35, tank: .15, splitter: .25 }, surge: 44 },
+      { min: 5, cap: 170, rate: 11, w: { swarm: 1.3, bomber: .45, shooter: .4, tank: .2, splitter: .35 }, surge: 52 },
+      { min: 6, cap: 205, rate: 13, w: { swarm: 1.4, bomber: .5, shooter: .45, tank: .25, splitter: .4 }, surge: 60 },
+      { min: 7, cap: 240, rate: 15, w: { swarm: 1.5, bomber: .55, shooter: .5, tank: .3, splitter: .5 }, surge: 70 },
+      { min: 8, cap: 275, rate: 17.5, w: { swarm: 1.6, bomber: .6, shooter: .55, tank: .35, splitter: .55 }, surge: 80 },
+      { min: 9, cap: 300, rate: 20, w: { swarm: 1.7, bomber: .7, shooter: .6, tank: .4, splitter: .6 }, surge: 90 },
+    ];
+    function waveCfg() { return WAVES[Math.min(9, Math.floor(elapsed / 60))]; }
 
     // ===== 运行时 =====
-    let state = "title", holding = false;
-    let player, fragments, holes, particles, stars, texts, portal, enemies, bullets, ebullets, orbs, booms, bolts;
-    let orbPool = [];
+    let state = "title", holding = false, paused = false;
+    let player, fragments, holes, particles, stars, texts, portal, enemies, bullets, ebullets, orbs, booms, bolts, chest, strikes, torpedoes;
+    let orbPool = [], particlePool = [];
     let fuel, fuelMax, hp, maxHp, score, best = +localStorage.getItem("gw_best3") || 0, bestDepth = +localStorage.getItem("gw_bestd3") || 1;
     let camX = 0, camY = 0, shake = 0, dustRun = 0, shieldUp = false, invuln = 0, trail = [];
-    let depth = 1, fragCount = 0, kills = 0, combo = 0, comboT = 0, xp = 0, level = 1, xpNeed = 5, elapsed = 0, fireT = 0;
+    let depth = 1, fragCount = 0, kills = 0, maxCombo = 0, combo = 0, comboT = 0, xp = 0, level = 1, xpNeed = 5, elapsed = 0, fireT = 0;
     let budget = 0, surgeMin = -1, eliteTimes = [], won = false;
+    let hitStop = 0;
     const mouse = { x: 0, y: 0 };
     stars = [];
     for (let i = 0; i < 220; i++)stars.push({
-      x: Math.random() * CW * 2, y: Math.random() * CH * 2,
+      x: Math.random() * CW * 2, y: Math.random() * CW * 2,
       s: Math.random() * 1.6 + .4, l: i < 130 ? .25 : .55
     });
+
+    // ===== 粒子池（数量封顶，复用对象，控制 GC）=====
+    const MAX_PARTICLES = 420;
+    function spawnParticle(o) {
+      let q;
+      if (particles.length >= MAX_PARTICLES) {
+        q = particles.shift();
+      } else {
+        q = particlePool.pop() || {};
+      }
+      Object.assign(q, o);
+      q.maxLife = o.life;
+      particles.push(q);
+      return q;
+    }
 
     function stats() {
       return {
         thrust: 250 * (1 + .08 * lv("thrust")),
         dmg: 1 + lv("weapon"),
-        plunder: lv("plunder"),
+        plunder: lv("plunder")
       };
     }
-    function dustMult() { return 1 + 0.5 * (depth - 1); }
+    // 深度倍率 × 连杀倍率（封顶防数字膨胀）
+    function depthMult() { return 1 + 0.4 * (depth - 1); }
+    function comboMult() { return 1 + Math.min(combo, 40) * 0.02; }
 
     function reset() {
       player = {
@@ -360,17 +454,20 @@
         verts: Array.from({ length: 8 }, (_, i) => ({ a: i / 8 * Math.PI * 2, d: rnd(8, 13) }))
       };
       fragments = []; holes = []; particles = []; trail = []; texts = []; portal = null;
-      enemies = []; bullets = []; ebullets = []; orbs = []; booms = []; bolts = [];
+      enemies = []; bullets = []; ebullets = []; orbs = []; booms = []; bolts = []; chest = null;
+      strikes = []; torpedoes = [];
       fuelMax = 100 + 15 * lv("fuel"); fuel = fuelMax;
       maxHp = 3 + lv("hull"); hp = maxHp;
       score = 0; shake = 0; dustRun = 0; shieldUp = lv("shield") > 0; invuln = 1.5;
-      depth = 1; fragCount = 0; kills = 0; combo = 0; comboT = 0; xp = 0; level = 1; xpNeed = 5;
-      elapsed = 0; fireT = 0; budget = 0; surgeMin = -1; won = false;
+      depth = 1; fragCount = 0; kills = 0; maxCombo = 0; combo = 0; comboT = 0;
+      xp = 0; level = 1; xpNeed = 5; elapsed = 0; fireT = 0; hitStop = 0;
+      budget = 0; surgeMin = -1; won = false;
       eliteTimes = [150, 330, 510, 690, 870];
-      // 基础：快射速 + 2发清小怪
+      // 开局即双发，前 30 秒不刮痧
       run = {
-        cd: .35, dmgMul: 1, multi: 1, pierce: 0, boom: 0, boomLvl: 0, nova: 0, novaT: 2,
-        chain: 0, chainT: 2, engine: 1, regen: 1, bspd: 1, range: 640
+        cd: .35, dmgMul: 1, multi: 2, pierce: 0, boom: 0, boomLvl: 0, nova: 0, novaT: 3,
+        chain: 0, chainT: 2.5, orbital: 0, orbitalT: 3, torpedo: 0, torpedoT: 3,
+        engine: 1, regen: 1, bspd: 1, range: 700
       };
       runLv = {};
       for (let i = 0; i < 2; i++)spawnHole(true);
@@ -406,24 +503,26 @@
       while (t < 80 && (Math.hypot(x - player.x, y - player.y) < 600 ||
         holes.some(h => Math.hypot(x - h.x, y - h.y) < h.pull + 100)));
       portal = { x, y, rot: 0 }; beep(520, .3, "sine", .15, 1040);
+      texts.push({ x: player.x, y: player.y - 60, txt: "⬇ 裂隙已开启，沿箭头走", life: 2.5, c: "#5ff", big: true });
     }
 
     // ===== 怪物工厂 =====
-    function hpMul() { return 1 + elapsed * 0.045 + (depth - 1) * 0.5; }
+    // 怪物成长（V3：系数放大 50%）
+    function hpMul() { return 1 + elapsed * 0.06 + (depth - 1) * 0.675; }
     function baseEnemy(x, y, type) {
       const m = hpMul();
       const T = {
         swarm: { r: 8, hp: 2 * m, spd: rnd(125, 165), xpv: 1, sc: 3, col: "#f55", dmg: 1, shape: 3 },
-        bomber: { r: 10, hp: 3 * m, spd: 215, xpv: 1, sc: 5, col: "#fa5", dmg: 1, shape: 4 },
-        shooter: { r: 11, hp: 4 * m, spd: 70, xpv: 2, sc: 8, col: "#f8f", dmg: 1, shape: 5, ft: rnd(1, 2.5) },
-        tank: { r: 20, hp: 26 * m, spd: 45, xpv: 5, sc: 20, col: "#8ac", dmg: 2, shape: 6 },
+        bomber: { r: 10, hp: 3 * m, spd: 200, xpv: 1, sc: 5, col: "#fa5", dmg: 1, shape: 4 },
+        shooter: { r: 11, hp: 4 * m, spd: 75, xpv: 2, sc: 8, col: "#f8f", dmg: 1, shape: 5, ft: rnd(1, 2.5) },
+        tank: { r: 20, hp: 24 * m, spd: 45, xpv: 5, sc: 20, col: "#8ac", dmg: 2, shape: 6 },
         splitter: { r: 13, hp: 6 * m, spd: 100, xpv: 2, sc: 8, col: "#ff5", dmg: 1, shape: 4 },
-        mini: { r: 6, hp: 1 * m, spd: 165, xpv: 1, sc: 2, col: "#fd5", dmg: 1, shape: 3 },
-        elite: { r: 24, hp: 60 * m, spd: 80, xpv: 12, sc: 80, col: "#f0f", dmg: 2, shape: 6, ft: 1.8, elite: true },
+        mini: { r: 6, hp: 1 * m, spd: 160, xpv: 1, sc: 2, col: "#fd5", dmg: 1, shape: 3 },
+        elite: { r: 24, hp: 55 * m, spd: 80, xpv: 12, sc: 80, col: "#f0f", dmg: 2, shape: 6, ft: 1.8, elite: true },
       }[type];
       return {
         x, y, vx: 0, vy: 0, type, r: T.r, hp: T.hp, maxHp: T.hp, spd: T.spd, xpv: T.xpv, sc: T.sc,
-        col: T.col, dmg: T.dmg, shape: T.shape, rot: 0, ft: T.ft || 0, hitCd: 0, elite: T.elite
+        col: T.col, dmg: T.dmg, shape: T.shape, rot: 0, ft: T.ft || 0, hitCd: 0, elite: T.elite, flash: 0
       };
     }
     function ringPos() {
@@ -439,10 +538,9 @@
       for (const k in w) { pick -= w[k]; if (pick <= 0) return k; }
       return "swarm";
     }
-    // 持续流出：不扎堆，swarm三只松散
     function directorSpawn() {
       const cfg = waveCfg();
-      budget += cfg.rate * 0.5; // 半秒节拍
+      budget += cfg.rate * 0.5;
       while (budget >= 1) {
         budget -= 1;
         if (enemies.length >= cfg.cap) break;
@@ -458,7 +556,6 @@
       const a = rnd(0, 6.28);
       texts.push({ x: player.x, y: player.y - 60, txt: "⚠ 怪潮来袭！", life: 2, c: "#f55", big: true });
       beep(220, .5, "sawtooth", .2, 440);
-      const cfg = waveCfg();
       for (let i = 0; i < n; i++) {
         const d = Math.max(CW, CH) / 2 + 80 + i * 18, aa = a + rnd(-.4, .4);
         const x = Math.max(50, Math.min(W - 50, player.x + Math.cos(aa) * d));
@@ -469,7 +566,7 @@
     function spawnElite() {
       const pos = ringPos();
       enemies.push(baseEnemy(pos.x, pos.y, "elite"));
-      texts.push({ x: pos.x, y: pos.y - 40, txt: "⭐ 精英出现", life: 2, c: "#f0f", big: true });
+      texts.push({ x: pos.x, y: pos.y - 40, txt: "⭐ 精英出现（掉宝箱）", life: 2, c: "#f0f", big: true });
       beep(110, .6, "square", .2, 60);
     }
 
@@ -485,7 +582,8 @@
       }
     }
     function beep(f, d, type = "sine", vol = .18, slide = 0) {
-      if (!AC) return; const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+      if (muted || !AC) return;
+      const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
       o.type = type; o.frequency.setValueAtTime(f, t);
       if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(slide, 1), t + d);
       g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
@@ -499,18 +597,16 @@
     const sSling = () => beep(240, .25, "sawtooth", .15, 900);
     const sHurt = () => beep(150, .25, "square", .22, 60);
     const sLevel = () => { beep(520, .12, "sine", .2, 780); setTimeout(() => beep(780, .12, "sine", .2, 1170), 100); setTimeout(() => beep(1170, .2, "sine", .2), 200); };
-    const sDepth = () => { beep(440, .15, "sine", .2, 880); setTimeout(() => beep(660, .2, "sine", .2, 1320), 120); };
     const sDeath = () => { beep(180, .7, "sawtooth", .25, 35); beep(90, .9, "square", .15, 25); };
-    const sBuy = () => { beep(520, .08, "triangle", .15, 780); setTimeout(() => beep(880, .12, "triangle", .15), 80); };
-    const sShield = () => beep(300, .3, "square", .2, 900);
     const sZap = () => beep(1200, .08, "sawtooth", .1, 300);
     const sNova = () => beep(160, .3, "triangle", .2, 600);
     const sBoom = () => beep(120, .2, "square", .15, 40);
+    const sChest = () => { beep(523, .1, "triangle", .15); setTimeout(() => beep(659, .1, "triangle", .15), 100); setTimeout(() => beep(784, .15, "triangle", .15), 200); setTimeout(() => beep(1047, .25, "triangle", .2), 320); };
 
     // ===== 输入 =====
     function toWorld(cx, cy) { return { x: cx + camX, y: cy + camY }; }
     cv.addEventListener("pointerdown", e => {
-      audio(); if (state !== "playing") return;
+      audio(); if (state !== "playing" || paused) return;
       holding = true; Object.assign(mouse, toWorld(e.clientX, e.clientY));
     });
     cv.addEventListener("pointermove", e => { Object.assign(mouse, toWorld(e.clientX, e.clientY)); });
@@ -522,16 +618,16 @@
 
     // ===== 界面 =====
     const panel = $("panel");
-    function showTitle(msg, reason, win) {
-      state = "title"; $("overlay").style.display = "flex"; panel.style.display = "block";
+    function showTitle(msg, reason) {
+      state = "title"; paused = false;
+      $("overlay").style.display = "flex";
+      panel.style.display = "block";
       panel.innerHTML =
         "<h1>引 力 井</h1>" +
         "<p>" + (msg || "按住牵引飞船，武器自动开火<br>" +
           "<span style='color:#f55'>坚持 10 分钟撤离成功</span>——怪会一波比一波凶<br>" +
-          "升级自动强化（伤害/攻速/能量），再从<span style='color:#7f7'>三选一</span>里拼AOE build<br>" +
-          "爆破弹头 · 冲击新星 · 环绕刃 · 连锁闪电——割起来<br>" +
-          "能量低于30%保底回充；捡碎片补满；贴黑洞可弹弓") + "</p>" +
-        (win ? "<div id='win'>🏆 撤离成功！奖励已发放</div>" : "") +
+          "升级三选一拼 AOE build：爆破 · 新星 · 连锁闪电<br>" +
+          "⭐ 精英掉宝箱，⬇ 裂隙进深度，越深层收益越高") + "</p>" +
         (reason ? "<div id='reason'>" + reason + "</div>" : "") +
         "<div style='color:#fd6;font-size:13px;margin-bottom:12px'>✦ 星尘库存 " + save.dust + "</div>" +
         "<button id='btn'>开 始</button><button id='btnShop'>升 级 基 地</button>";
@@ -539,31 +635,36 @@
       $("btnShop").onclick = showShop;
     }
     function showShop() {
-      state = "shop"; $("overlay").style.display = "flex"; panel.style.display = "block";
+      state = "shop";
+      $("overlay").style.display = "flex";
+      panel.style.display = "block";
       let html = "<h1 style='font-size:24px'>升 级 基 地</h1>" +
         "<div style='color:#fd6;font-size:14px;margin-bottom:10px'>✦ 星尘库存 " + save.dust + "</div>";
       UPGRADES.forEach((u, i) => {
         const l = lv(u.key), maxed = l >= u.max, cost = upCost(u);
         const pips = "●".repeat(l) + "○".repeat(u.max - l);
-        html += "<div class='shopItem'><div class='info'><div class='nm'>" + u.nm +
-          " <span class='pips'>" + pips + "</span></div><div class='ds'>" + u.ds + "</div>" +
+        html += "<div class='shopItem'>" +
+          "<div class='info'><div class='nm'>" + u.nm + " <span class='pips'>" + pips + "</span></div>" +
+          "<div class='ds'>" + u.ds + "</div>" +
           "<div class='lv'>" + (maxed ? "已满级" : "") + "</div></div>" +
           "<button data-i='" + i + "' " + (maxed || save.dust < cost ? "disabled" : "") + ">" +
           (maxed ? "MAX" : "✦" + cost) + "</button></div>";
       });
       html += "<button id='btnBack' style='margin-top:10px'>返 回</button>";
       panel.innerHTML = html;
-      panel.querySelectorAll(".shopItem button").forEach(b => {
+      panel.querySelectorAll("[data-i]").forEach(b => {
         b.onclick = () => {
           const u = UPGRADES[+b.dataset.i], cost = upCost(u);
           if (save.dust < cost || lv(u.key) >= u.max) return;
-          save.dust -= cost; save.up[u.key]++; persist(); sBuy(); showShop();
+          save.dust -= cost; save.up[u.key]++; persist(); beep(520, .08, "triangle", .15, 780); showShop();
         };
       });
       $("btnBack").onclick = () => showTitle();
     }
     function showLevelUp() {
-      state = "levelup"; $("overlay").style.display = "flex"; panel.style.display = "block";
+      state = "levelup";
+      $("overlay").style.display = "flex";
+      panel.style.display = "block";
       const pool = RUNUP.filter(u => (runLv[u.id] || 0) < u.max);
       const picks = [];
       while (picks.length < 3 && pool.length) {
@@ -582,12 +683,121 @@
       panel.innerHTML = html;
       panel.querySelectorAll(".card").forEach((el, i) => {
         el.onclick = () => {
-          if (picks.length) { const u = picks[i]; u.apply(run); runLv[u.id] = (runLv[u.id] || 0) + 1; }
-          else save.dust += 10;
-          persist(); sBuy();
-          $("overlay").style.display = "none"; panel.style.display = "none"; state = "playing";
+          if (picks.length) {
+            const u = picks[i]; u.apply(run); runLv[u.id] = (runLv[u.id] || 0) + 1;
+          } else save.dust += 10;
+          persist(); beep(520, .08, "triangle", .15, 780);
+          $("overlay").style.display = "none"; panel.style.display = "none";
+          state = "playing";
         };
       });
+    }
+    // ===== 宝箱：精英掉落，演出式开启 =====
+    function showChest() {
+      state = "chest";
+      $("overlay").style.display = "flex";
+      panel.style.display = "block";
+      panel.innerHTML =
+        "<h1 style='font-size:24px'>精 英 宝 箱</h1>" +
+        "<div id='chestIcon' style='font-size:56px;margin:18px 0'>🗃</div>" +
+        "<p id='chestMsg'>开启中...</p>";
+      let spin = 0;
+      const spinTimer = setInterval(() => {
+        const icons = ["🗃", "✨", "💎", "⭐"];
+        $("chestIcon").textContent = icons[spin++ % icons.length];
+      }, 120);
+      setTimeout(() => {
+        clearInterval(spinTimer);
+        // 奖励：星尘 + 一个随机局内升级
+        const reward = 30 + Math.floor(rnd(0, 20));
+        save.dust += reward;
+        const pool = RUNUP.filter(u => (runLv[u.id] || 0) < u.max);
+        let bonus = null;
+        if (pool.length) {
+          bonus = pool[Math.floor(Math.random() * pool.length)];
+          bonus.apply(run); runLv[bonus.id] = (runLv[bonus.id] || 0) + 1;
+        }
+        persist(); sChest(); vib(100);
+        panel.innerHTML =
+          "<h1 style='font-size:24px'>🎁 战 利 品</h1>" +
+          "<div style='font-size:50px;margin:14px 0'>💎</div>" +
+          "<p>✦ 星尘 +" + reward + "</p>" +
+          (bonus ? "<p style='color:#7f7'>额外获得：" + bonus.nm + "</p>" : "") +
+          "<button id='chestOk'>继 续 战 斗</button>";
+        $("chestOk").onclick = () => {
+          $("overlay").style.display = "none"; panel.style.display = "none";
+          state = "playing";
+        };
+      }, 1300);
+    }
+    // 暂停菜单
+    let resetArmed = false;
+    function showPause() {
+      if (state !== "playing") return;
+      paused = true; resetArmed = false;
+      $("overlay").style.display = "flex";
+      panel.style.display = "block";
+      // 已选技能网格（一排五个：上图标，下等级）
+      const owned = Object.keys(runLv).filter(id => runLv[id] > 0);
+      let skillHtml = "<h1 style='font-size:20px;margin-top:6px'>已 装 配 技 能</h1>";
+      if (!owned.length) {
+        skillHtml += "<p style='color:#789'>暂无，升级后会显示在这里</p>";
+      } else {
+        skillHtml += "<div style='display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%'>";
+        owned.forEach(id => {
+          const u = RUNUP.find(x => x.id === id);
+          if (!u) return;
+          const l = runLv[id];
+          const icon = u.nm.split(" ")[0];
+          skillHtml += "<div style='border:1px solid rgba(120,160,220,.35);border-radius:10px;" +
+            "background:rgba(30,45,80,.5);padding:8px 2px;text-align:center'>" +
+            "<div style='font-size:24px;line-height:1.2'>" + icon + "</div>" +
+            "<div style='font-size:11px;color:#9fc;margin-top:4px'>" + l + "/" + u.max + "</div></div>";
+        });
+        skillHtml += "</div>";
+      }
+      panel.innerHTML =
+        "<h1 style='font-size:26px'>已 暂 停</h1>" +
+        skillHtml +
+        "<div style='margin-top:10px'></div>" +
+        "<button id='rBtn'>▶ 继续</button>" +
+        "<button id='mBtn'>" + (muted ? "🔇 取消静音" : "🔊 静音") + "</button>" +
+        "<button id='qBtn'>🏳 放弃本局</button>" +
+        "<button id='rsBtn'>🗑 重置存档</button>";
+      $("rBtn").onclick = hidePause;
+      $("mBtn").onclick = () => { toggleMute(); showPause(); };
+      $("qBtn").onclick = () => { hidePause(); showTitle("已放弃本局，本局星尘未结算"); };
+      $("rsBtn").onclick = e => {
+        if (!resetArmed) { resetArmed = true; e.target.textContent = "⚠ 再点一次确认重置"; return; }
+        save = defaultSave(); persist();
+        hidePause(); showTitle();
+      };
+    }
+    function hidePause() {
+      paused = false;
+      $("overlay").style.display = "none";
+      panel.style.display = "none";
+    }
+    // 撤离结算面板
+    function showSettlement() {
+      state = "settle";
+      $("overlay").style.display = "flex";
+      panel.style.display = "block";
+      panel.innerHTML =
+        "<h1 style='font-size:26px'>🏆 撤 离 成 功</h1>" +
+        "<div id='rows'></div>" +
+        "<button id='setOk'>返 回 基 地</button>";
+      const rows = [
+        ["存活时间", "10:00"],
+        ["总击杀", kills],
+        ["最高连杀", maxCombo],
+        ["抵达深度", depth],
+        ["最终等级", level],
+        ["本局星尘", "✦ " + dustRun + "（含撤离奖励 50）"],
+      ];
+      $("rows").innerHTML = rows.map(r =>
+        "<div class='stat-row'><span>" + r[0] + "</span><b>" + r[1] + "</b></div>").join("");
+      $("setOk").onclick = () => showTitle();
     }
     function endRun(winFlag, reason) {
       state = "dead"; holding = false;
@@ -595,39 +805,37 @@
         dustRun += 50; won = true;
         for (let i = 0; i < 80; i++) {
           const a = rnd(0, 6.28);
-          particles.push({
+          spawnParticle({
             x: player.x, y: player.y, vx: Math.cos(a) * rnd(60, 300), vy: Math.sin(a) * rnd(60, 300),
-            life: rnd(.5, 1.5), c: "#5f5", r: rnd(1, 4)
+            life: rnd(.5, 1.5), c: "#5f5", r: rnd(1.5, 4)
           });
         }
-        sLevel(); setTimeout(() => sLevel(), 300); setTimeout(() => sLevel(), 600);
+        sLevel(); vib([100, 50, 100]);
       } else {
-        shake = 18; sDeath();
+        shake = 18; sDeath(); vib(200);
         for (let i = 0; i < 60; i++) {
-          const a = rnd(0, 6.28), v = rnd(30, 260);
-          particles.push({
-            x: player.x, y: player.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+          const a = rnd(0, 6.28);
+          spawnParticle({
+            x: player.x, y: player.y, vx: Math.cos(a) * rnd(30, 260), vy: Math.sin(a) * rnd(30, 260),
             life: rnd(.5, 1.4), c: "#fa5", r: rnd(1.5, 4)
           });
         }
       }
       if (humGain) humGain.gain.value = 0;
-      const nr = score > best;
-      if (nr) { best = score; localStorage.setItem("gw_best3", best); }
+      if (score > best) { best = score; localStorage.setItem("gw_best3", best); }
       if (depth > bestDepth) { bestDepth = depth; localStorage.setItem("gw_bestd3", bestDepth); }
       save.dust += dustRun; persist();
-      const head = winFlag ? ("🏆 撤离成功！ ✦+50 ｜ ") : "";
-      setTimeout(() => showTitle(
-        head + "分数 " + score + " ｜ 击杀 " + kills + " ｜ 深度 " + depth + " ｜ ✦+" + dustRun,
-        winFlag ? null : ("💀 " + reason + (nr ? "　<span style='color:#fc3'>★ 新纪录！</span>" : ""))), winFlag ? 600 : 900);
+      if (winFlag) setTimeout(showSettlement, 700);
+      else setTimeout(() => showTitle(
+        "分数 " + score + " ｜ 击杀 " + kills + " ｜ 深度 " + depth + " ｜ ✦+" + dustRun,
+        "💀 " + reason + (score === best ? "　<span style='color:#fc3'>★ 新纪录！</span>" : "")), 900);
     }
     function hurt(n) {
       if (invuln > 0) return;
-      if (shieldUp) { shieldUp = false; invuln = 1; sShield(); shake = 10; return; }
-      hp -= n; invuln = 1.2; sHurt(); shake = 12;
+      if (shieldUp) { shieldUp = false; invuln = 1; beep(300, .3, "square", .2, 900); shake = 10; vib(60); return; }
+      hp -= n; invuln = 1.2; sHurt(); shake = 12; vib(80);
       if (hp <= 0) endRun(false, "船体被击毁");
     }
-    // 经验晶体对象池投放
     function dropOrbs(x, y, n) {
       for (let k = 0; k < n; k++) {
         const a = rnd(0, 6.28);
@@ -638,15 +846,18 @@
         orbs.push(o);
       }
     }
-
     function killEnemy(i) {
       const e = enemies[i];
-      kills++; combo++; comboT = 2.5;
-      score += e.sc; explode(e); sKill();
+      kills++; combo++; comboT = 3; maxCombo = Math.max(maxCombo, combo);
+      const cm = comboMult();
+      score += Math.round(e.sc * cm);
+      explode(e); sKill();
       if (combo % 10 === 0) {
-        texts.push({ x: e.x, y: e.y - 20, txt: "连杀 ×" + combo + "!", life: 1.2, c: "#fc6", big: true });
+        texts.push({ x: e.x, y: e.y - 20, txt: "连杀 ×" + combo + "（×" + cm.toFixed(2) + "）", life: 1.2, c: "#fc6", big: true });
         shake = Math.max(shake, 6);
+        hitStop = Math.max(hitStop, 0.045); // 高连杀命中停顿
       }
+      if (combo % 15 === 0) vib(40);
       if (e.type === "splitter") {
         for (let k = 0; k < 3; k++) {
           const a = rnd(0, 6.28);
@@ -654,23 +865,23 @@
         }
       }
       if (e.elite) {
-        shake = Math.max(shake, 14); hp = Math.min(maxHp, hp + 1);
-        texts.push({ x: e.x, y: e.y - 30, txt: "精英击破！船体+1", life: 1.5, c: "#f0f", big: true });
+        shake = 14; hp = Math.min(maxHp, hp + 1);
+        chest = { x: e.x, y: e.y, r: 14 };
+      } else {
+        dropOrbs(e.x, e.y, e.xpv);
       }
-      dropOrbs(e.x, e.y, e.xpv);
       enemies.splice(i, 1);
     }
     function explode(e) {
       const n = e.elite ? 40 : (e.r > 15 ? 20 : 12);
       for (let k = 0; k < n; k++) {
         const a = rnd(0, 6.28);
-        particles.push({
+        spawnParticle({
           x: e.x, y: e.y, vx: Math.cos(a) * rnd(40, 220), vy: Math.sin(a) * rnd(40, 220),
           life: rnd(.3, .8), c: e.col, r: rnd(1, 3.5)
         });
       }
     }
-    // AOE爆炸结算
     function doBoom(x, y, r, dmg, nova, c) {
       booms.push({ x, y, r, dmg, life: .35, max: .35, nova, c });
     }
@@ -681,7 +892,6 @@
       elapsed += dt;
       if (invuln > 0) invuln -= dt;
       if (comboT > 0) { comboT -= dt; if (comboT <= 0) combo = 0; }
-      // 10分钟撤离成功
       if (elapsed >= RUN_LEN) { endRun(true); return; }
       // 移动
       if (holding && fuel > 0) {
@@ -691,11 +901,13 @@
           p.vx += dx / dist * a * dt; p.vy += dy / dist * a * dt;
         }
         fuel -= 9 * dt;
-        if (humGain) humGain.gain.value = .07;
-        for (let i = 0; i < 2; i++)particles.push({
-          x: p.x + rnd(-4, 4), y: p.y + rnd(-4, 4),
-          vx: -p.vx * .2 + rnd(-30, 30), vy: -p.vy * .2 + rnd(-30, 30), life: rnd(.2, .5), c: "#0cf", r: rnd(1, 2.5)
-        });
+        if (humGain && !muted) humGain.gain.value = .07;
+        for (let i = 0; i < 2; i++)
+          spawnParticle({
+            x: p.x + rnd(-4, 4), y: p.y + rnd(-4, 4),
+            vx: -p.vx * .2 + rnd(-30, 30), vy: -p.vy * .2 + rnd(-30, 30),
+            life: rnd(.2, .5), c: "#0cf", r: rnd(1, 2.5)
+          });
       } else if (humGain) humGain.gain.value = 0;
       if (fuel < fuelMax * 0.3) fuel = Math.min(fuelMax * 0.3, fuel + 7 * run.regen * dt);
       // 黑洞
@@ -704,10 +916,9 @@
         const dx = h.x - p.x, dy = h.y - p.y, dist = Math.hypot(dx, dy);
         if (dist < h.core + 8) {
           if (shieldUp) {
-            shieldUp = false; invuln = 1.5; sShield(); shake = 12;
+            shieldUp = false; invuln = 1.5; beep(300, .3, "square", .2, 900); shake = 12;
             p.vx = dx / dist * 450; p.vy = dy / dist * 450;
-          }
-          else if (invuln <= 0) { endRun(false, "被黑洞吞噬了"); return; }
+          } else if (invuln <= 0) { endRun(false, "被黑洞吞噬了"); return; }
           else { p.vx = dx / dist * 450; p.vy = dy / dist * 450; }
         }
         if (dist < h.pull) {
@@ -730,22 +941,20 @@
       if (sp > 620) { p.vx *= 620 / sp; p.vy *= 620 / sp; }
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.ang += dt * (.5 + sp * .002);
-      trail.push({ x: p.x, y: p.y, life: .4, sp });
+      trail.push({ x: p.x, y: p.y, life: .4 });
       for (let i = trail.length - 1; i >= 0; i--) { trail[i].life -= dt; if (trail[i].life <= 0) trail.splice(i, 1); }
       if (p.x < p.r) { p.x = p.r; p.vx *= -.7; } if (p.x > W - p.r) { p.x = W - p.r; p.vx *= -.7; }
       if (p.y < p.r) { p.y = p.r; p.vy *= -.7; } if (p.y > H - p.r) { p.y = H - p.r; p.vy *= -.7; }
-      // ===== 刷怪导演 =====
+      // 刷怪导演
       const cfg = waveCfg();
       directorSpawn();
-      // 整分钟怪潮
       const curMin = Math.floor(elapsed / 60);
       if (curMin !== surgeMin && cfg.surge) { surgeMin = curMin; spawnSurge(cfg.surge); }
-      // 定点精英
       if (eliteTimes.length && elapsed >= eliteTimes[0]) { eliteTimes.shift(); spawnElite(); }
-      // ===== 敌人AI =====
+      // 敌人 AI
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
-        e.rot += dt * 3; if (e.hitCd > 0) e.hitCd -= dt;
+        e.rot += dt * 3; if (e.hitCd > 0) e.hitCd -= dt; if (e.flash > 0) e.flash -= dt;
         const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
         if (e.type === "shooter" || e.elite) {
           const want = 350, dir = dist > want + 40 ? 1 : (dist < want - 60 ? -1 : 0);
@@ -777,26 +986,26 @@
           }
           if (hd < h.core + 6) {
             explode(e); enemies.splice(i, 1);
-            texts.push({ x: e.x, y: e.y, txt: "送进黑洞!", life: 1, c: "#a5f" }); break;
+            texts.push({ x: e.x, y: e.y, txt: "送进黑洞!", life: 1, c: "#a5f" });
+            break;
           }
         }
       }
-      // ===== 冲击新星 =====
+      // 冲击新星
       if (run.nova > 0) {
         run.novaT -= dt;
         if (run.novaT <= 0) {
-          run.novaT = Math.max(2.2, 4.5 - .5 * run.nova);
-          doBoom(p.x, p.y, 150 + 55 * run.nova, 10 * run.nova * run.dmgMul, true, "#5ff");
+          run.novaT = Math.max(2.2, 4 - .5 * run.nova);
+          doBoom(p.x, p.y, 140 + 60 * run.nova, 8 * run.nova * run.dmgMul, true, "#5ff");
           sNova(); shake = Math.max(shake, 7);
           texts.push({ x: p.x, y: p.y - 30, txt: "新星!", life: .6, c: "#5ff" });
         }
       }
-      // ===== 连锁闪电 =====
+      // 连锁闪电
       if (run.chain > 0) {
         run.chainT -= dt;
         if (run.chainT <= 0) {
           run.chainT = 2.2;
-          // 找最近敌人起跳
           let cur = null, cd = 520;
           for (const e of enemies) {
             const d2 = Math.hypot(e.x - p.x, e.y - p.y);
@@ -809,14 +1018,9 @@
             const hitSet = new Set();
             for (let j = 0; j < jumps && cur; j++) {
               bolts.push({ x1: px, y1: py, x2: cur.x, y2: cur.y, life: .18 });
-              cur.hp -= 9 * run.dmgMul; hitSet.add(cur);
-              for (let k = 0; k < 6; k++)particles.push({
-                x: cur.x, y: cur.y,
-                vx: rnd(-100, 100), vy: rnd(-100, 100), life: rnd(.15, .3), c: "#5ff", r: rnd(1, 2)
-              });
+              cur.hp -= 12 * run.dmgMul; cur.flash = .1; hitSet.add(cur);
               if (cur.hp <= 0) { const idx = enemies.indexOf(cur); if (idx >= 0) killEnemy(idx); }
               px = cur.x; py = cur.y;
-              // 跳到下一个最近的未命中敌人
               let nxt = null, nd = 260;
               for (const e of enemies) {
                 if (hitSet.has(e)) continue;
@@ -828,8 +1032,63 @@
           }
         }
       }
+      // ===== 轨道打击：倒计时 → 锁定目标 → 瞄准环 → 天降爆炸 =====
+      if (run.orbital > 0) {
+        run.orbitalT -= dt;
+        if (run.orbitalT <= 0) {
+          run.orbitalT = 4;
+          const n = run.orbital + 2;
+          const candidates = enemies.filter(e => Math.hypot(e.x - p.x, e.y - p.y) < 750);
+          for (let k = 0; k < n; k++) {
+            const t = candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+            const x = t ? t.x : p.x + rnd(-300, 300), y = t ? t.y : p.y + rnd(-300, 300);
+            strikes.push({ x, y, t: .7, r: 90 });
+          }
+          beep(660, .12, "sine", .12, 990);
+        }
+      }
+      for (let i = strikes.length - 1; i >= 0; i--) {
+        const s = strikes[i];
+        s.t -= dt;
+        if (s.t <= 0) {
+          doBoom(s.x, s.y, s.r, 7 * run.dmgMul, false, "#7dd3fc");
+          beep(140, .2, "square", .15, 70); shake = Math.max(shake, 5); vib(30);
+          strikes.splice(i, 1);
+        }
+      }
+      // ===== 湮灭鱼雷：倒计时发射 → 慢速飞行 → 坍缩爆炸 =====
+      if (run.torpedo > 0) {
+        run.torpedoT -= dt;
+        if (run.torpedoT <= 0) {
+          run.torpedoT = 3.5;
+          let tgt = null, td = 800;
+          for (const e of enemies) {
+            const d2 = Math.hypot(e.x - p.x, e.y - p.y);
+            if (d2 < td) { td = d2; tgt = e; }
+          }
+          const ang = tgt ? Math.atan2(tgt.y - p.y, tgt.x - p.x) : p.ang;
+          torpedoes.push({
+            x: p.x, y: p.y,
+            vx: Math.cos(ang) * 260, vy: Math.sin(ang) * 260, t: 2.2
+          });
+          beep(320, .15, "sawtooth", .12, 160);
+        }
+      }
+      for (let i = torpedoes.length - 1; i >= 0; i--) {
+        const tp = torpedoes[i];
+        tp.x += tp.vx * dt; tp.y += tp.vy * dt; tp.t -= dt;
+        let boomNow = tp.t <= 0;
+        if (!boomNow) for (const e of enemies) {
+          if (Math.hypot(e.x - tp.x, e.y - tp.y) < e.r + 10) { boomNow = true; break; }
+        }
+        if (boomNow) {
+          doBoom(tp.x, tp.y, 130, 14 * run.dmgMul, true, "#c4b5fd");
+          beep(90, .4, "sawtooth", .18, 40); shake = Math.max(shake, 8); vib(60);
+          torpedoes.splice(i, 1);
+        }
+      }
       if (state !== "playing") return;
-      // ===== 自动开火 =====
+      // 自动开火
       fireT -= dt;
       if (fireT <= 0 && enemies.length) {
         let tgt = null, td = run.range;
@@ -846,14 +1105,14 @@
             const g = (k - (n - 1) / 2) * gap;
             bullets.push({
               x: p.x + px * g, y: p.y + py * g,
-              vx: Math.cos(baseA) * 560 * run.bspd, vy: Math.sin(baseA) * 560 * run.bspd,
+              vx: Math.cos(baseA) * 600 * run.bspd, vy: Math.sin(baseA) * 600 * run.bspd,
               life: 1.15, dmg: st.dmg * run.dmgMul, pierce: run.pierce, hit: []
             });
           }
           sShoot();
         }
       }
-      // ===== 子弹（命中→爆炸） =====
+      // 子弹碰撞
       for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
@@ -861,24 +1120,25 @@
         if (!dead) for (let j = enemies.length - 1; j >= 0; j--) {
           const e = enemies[j];
           if (!b.hit.includes(e) && Math.hypot(e.x - b.x, e.y - b.y) < e.r + 5) {
-            e.hp -= b.dmg; b.hit.push(e); sHit();
-            for (let k = 0; k < 5; k++) {
-              const a = rnd(0, 6.28);
-              particles.push({
-                x: b.x, y: b.y, vx: Math.cos(a) * rnd(30, 120), vy: Math.sin(a) * rnd(30, 120),
+            e.hp -= b.dmg; e.flash = .08; b.hit.push(e); sHit();
+            // 伤害飘字
+            texts.push({ x: e.x + rnd(-6, 6), y: e.y - e.r, txt: Math.round(b.dmg), life: .55, c: "#fde68a", small: true });
+            for (let k = 0; k < 5; k++)
+              spawnParticle({
+                x: b.x, y: b.y, vx: rnd(-80, 80), vy: rnd(-80, 80),
                 life: rnd(.2, .4), c: "#fc6", r: rnd(1, 2)
               });
-            }
             if (e.hp <= 0) killEnemy(j);
             if (run.boom > 0) {
-              doBoom(b.x, b.y, run.boom, b.dmg * 2.2 + run.boomLvl * 3 * run.dmgMul, false, "#fa5"); sBoom();
+              doBoom(b.x, b.y, run.boom, b.dmg * 1.5 + run.boomLvl * 2.5 * run.dmgMul, false, "#fa5");
+              sBoom(); hitStop = Math.max(hitStop, .03);
             }
             if (b.pierce > 0) b.pierce--; else { dead = true; break; }
           }
         }
         if (dead) bullets.splice(i, 1);
       }
-      // ===== 爆炸/冲击波结算 =====
+      // 爆炸结算
       for (let i = booms.length - 1; i >= 0; i--) {
         const bm = booms[i];
         bm.life -= dt;
@@ -888,7 +1148,7 @@
             const e = enemies[j];
             const d = Math.hypot(e.x - bm.x, e.y - bm.y);
             if (d < bm.r + e.r) {
-              e.hp -= bm.dmg;
+              e.hp -= bm.dmg; e.flash = .1;
               if (bm.nova) {
                 const kx = (e.x - bm.x) / (d || 1), ky = (e.y - bm.y) / (d || 1);
                 e.vx += kx * 420; e.vy += ky * 420;
@@ -910,56 +1170,60 @@
           if (state !== "playing") return;
         }
       }
-      // 经验晶体：无状态追踪（对象池，绝不绕圈）
+      // 经验晶体
       for (let i = orbs.length - 1; i >= 0; i--) {
         const o = orbs[i];
         o.age += dt;
         const dx = p.x - o.x, dy = p.y - o.y, dist = Math.hypot(dx, dy) || 1;
-        // 速度直接指向玩家：远=瞬移般冲过来，近=收尾减速，0.5秒内必达
         const spd = Math.min(2200, Math.max(500, dist * 2.2));
-        o.x += dx / dist * spd * dt;
-        o.y += dy / dist * spd * dt;
+        o.x += dx / dist * spd * dt; o.y += dy / dist * spd * dt;
         if (dist < 26) {
-          orbs[i] = orbs[orbs.length - 1]; orbs.pop(); orbPool.push(o);
-          xp++; sOrb();
+          orbs.splice(i, 1); orbPool.push(o);
+          sOrb(); xp++;
           if (xp >= xpNeed) {
-            xp = 0; level++; xpNeed = 3 + level * 2;
-            run.cd *= 0.965; run.dmgMul += 0.12;
+            xp = 0; level++; xpNeed = nextXpNeed(level);
+            run.cd *= 0.98; run.dmgMul += 0.10;
             fuel = Math.min(fuelMax, fuel + fuelMax * 0.25);
             sLevel(); showLevelUp(); return;
           }
         }
       }
-
+      // 宝箱拾取
+      if (chest && Math.hypot(chest.x - p.x, chest.y - p.y) < chest.r + p.r) {
+        chest = null; showChest(); return;
+      }
       // 裂隙
       if (portal) {
         portal.rot += dt * 2;
         if (Math.hypot(portal.x - p.x, portal.y - p.y) < 45) {
-          depth++; portal = null; sDepth(); shake = 10;
+          depth++; portal = null;
+          beep(440, .15, "sine", .2, 880); shake = 10; vib(80);
           fuel = Math.min(fuelMax, fuel + fuelMax * .4);
           if (holes.length < 6) spawnHole();
           spawnElite();
-          texts.push({ x: p.x, y: p.y - 50, txt: "⬇ 深度 " + depth + "　收益×" + dustMult().toFixed(1), life: 1.8, c: "#5ff" });
+          texts.push({ x: p.x, y: p.y - 50, txt: "⬇ 深度 " + depth + "　收益×" + depthMult().toFixed(1), life: 1.8, c: "#5ff" });
         }
       }
       // 碎片
       for (let i = fragments.length - 1; i >= 0; i--) {
         const f = fragments[i];
         if (Math.hypot(f.x - p.x, f.y - p.y) < 26) {
-          fragments.splice(i, 1);
-          const gain = f.risky ? 3 : 1;
-          score += gain; dustRun += f.risky ? (3 + st.plunder) : 1;
+          fragments.splice(i, 1); fragCount++;
+          const cm = comboMult(), dm = depthMult();
+          const gain = Math.round((f.risky ? (3 + st.plunder) : 1) * dm * cm);
+          score += gain; dustRun += gain;
           fuel = Math.min(fuelMax, fuel + 30 * (f.risky ? 1.5 : 1));
           sCollect(); shake = Math.max(shake, 3);
           texts.push({ x: f.x, y: f.y, txt: "+" + gain, life: .8, c: f.risky ? "#fc6" : "#0ff" });
-          fragCount++;
           if (fragCount % 10 === 0 && !portal) spawnPortal();
           spawnAny();
         }
       }
+      // 粒子（回收进池）
       for (let i = particles.length - 1; i >= 0; i--) {
         const q = particles[i];
-        q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt; if (q.life <= 0) particles.splice(i, 1);
+        q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
+        if (q.life <= 0) { particles.splice(i, 1); particlePool.push(q); }
       }
       for (let i = bolts.length - 1; i >= 0; i--) { bolts[i].life -= dt; if (bolts[i].life <= 0) bolts.splice(i, 1); }
       for (let i = texts.length - 1; i >= 0; i--) {
@@ -969,6 +1233,24 @@
       camX += ((p.x - CW / 2) - camX) * Math.min(1, dt * 5);
       camY += ((p.y - CH / 2) - camY) * Math.min(1, dt * 5);
       camX = Math.max(0, Math.min(W - CW, camX)); camY = Math.max(0, Math.min(H - CH, camY));
+    }
+
+    // 屏幕边缘指引
+    function edgeArrow(worldX, worldY, color, label) {
+      const sx = worldX - camX, sy = worldY - camY;
+      const m = 46;
+      if (sx > m && sx < CW - m && sy > m && sy < CH - m) return;
+      const cx = CW / 2, cy = CH / 2;
+      const ang = Math.atan2(sy - cy, sx - cx);
+      const rx = Math.max(0, CW / 2 - m), ry = Math.max(0, CH / 2 - m);
+      const ex = cx + Math.cos(ang) * rx, ey = cy + Math.sin(ang) * ry;
+      const ax = Math.min(CW - m, Math.max(m, ex)), ay = Math.min(CH - m, Math.max(m, ey));
+      ctx.save(); ctx.translate(ax, ay); ctx.rotate(ang);
+      ctx.fillStyle = color; ctx.globalAlpha = .9;
+      ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-6, -8); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+      if (label) { ctx.font = "12px monospace"; ctx.textAlign = "center"; ctx.fillText(label, 0, -14); }
+      ctx.restore();
     }
 
     // ===== 绘制 =====
@@ -981,22 +1263,6 @@
       }
       ctx.globalAlpha = 1;
       ctx.save(); ctx.translate(-camX + sx, -camY + sy);
-      for (const h of holes) {
-        const g = ctx.createRadialGradient(h.x, h.y, h.core, h.x, h.y, h.pull);
-        g.addColorStop(0, "rgba(140,60,255,.35)"); g.addColorStop(1, "rgba(140,60,255,0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, h.pull, 0, 6.29); ctx.fill();
-        ctx.strokeStyle = "rgba(255,200,100,.22)"; ctx.lineWidth = 2; ctx.setLineDash([4, 10]);
-        ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 130, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
-        ctx.strokeStyle = "rgba(255,80,80,.35)"; ctx.lineWidth = 1.5; ctx.setLineDash([3, 7]);
-        ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 30, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
-        ctx.strokeStyle = "rgba(160,80,255,.5)"; ctx.lineWidth = 1.5;
-        for (let i = 0; i < 3; i++) {
-          ctx.beginPath();
-          ctx.ellipse(h.x, h.y, h.core + 14 + i * 14, (h.core + 14 + i * 14) * .45, h.rot + i, 0, 6.29); ctx.stroke();
-        }
-        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(h.x, h.y, h.core, 0, 6.29); ctx.fill();
-        ctx.strokeStyle = "#a5f"; ctx.lineWidth = 2; ctx.stroke();
-      }
       if (portal) {
         const q = portal, pu = 1 + Math.sin(t * .005) * .15;
         const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, 55 * pu);
@@ -1004,9 +1270,14 @@
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q.x, q.y, 55 * pu, 0, 6.29); ctx.fill();
         ctx.strokeStyle = "#5ff"; ctx.lineWidth = 2.5;
         for (let i = 0; i < 2; i++) {
-          ctx.beginPath();
-          ctx.arc(q.x, q.y, (30 + i * 10) * pu, q.rot + i * 2, q.rot + i * 2 + 4.4); ctx.stroke();
+          ctx.beginPath(); ctx.arc(q.x, q.y, (30 + i * 10) * pu, q.rot + i * 2, q.rot + i * 2 + 4.4); ctx.stroke();
         }
+      }
+      // 宝箱
+      if (chest) {
+        const p = 1 + Math.sin(t * .006) * .15;
+        ctx.font = 28 * p + "px"; ctx.textAlign = "center";
+        ctx.fillText("🗃", chest.x, chest.y + 10);
       }
       for (const f of fragments) {
         const pu = 1 + Math.sin(t * .004 + f.ph) * .25, s = (f.risky ? 11 : 9) * pu;
@@ -1026,23 +1297,45 @@
       }
       for (const b of bullets) {
         ctx.strokeStyle = "#fc6"; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.moveTo(b.x, b.y);
-        ctx.lineTo(b.x - b.vx * .02, b.y - b.vy * .02); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx * .02, b.y - b.vy * .02); ctx.stroke();
+      }
+      // 轨道打击瞄准环（收缩提示落点）
+      for (const s of strikes) {
+        const k = s.t / .7, rr = s.r * (0.4 + .6 * k);
+        ctx.save();
+        ctx.strokeStyle = "rgba(125,211,252,.9)"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(s.x, s.y, rr, 0, 6.28); ctx.stroke();
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.28); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(s.x - rr - 6, s.y); ctx.lineTo(s.x - rr + 6, s.y);
+        ctx.moveTo(s.x + rr - 6, s.y); ctx.lineTo(s.x + rr + 6, s.y);
+        ctx.moveTo(s.x, s.y - rr - 6); ctx.lineTo(s.x, s.y - rr + 6);
+        ctx.moveTo(s.x, s.y + rr - 6); ctx.lineTo(s.x, s.y + rr + 6);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // 湮灭鱼雷（紫色坍缩核心 + 脉冲光晕）
+      for (const tp of torpedoes) {
+        const p2 = 1 + Math.sin(t * .012) * .2;
+        const g = ctx.createRadialGradient(tp.x, tp.y, 0, tp.x, tp.y, 22 * p2);
+        g.addColorStop(0, "rgba(196,181,253,.95)"); g.addColorStop(1, "rgba(124,58,237,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(tp.x, tp.y, 22 * p2, 0, 6.28); ctx.fill();
+        ctx.fillStyle = "#ede9fe";
+        ctx.beginPath(); ctx.arc(tp.x, tp.y, 5, 0, 6.28); ctx.fill();
       }
       for (const b of ebullets) {
-        ctx.fillStyle = "#faa";
-        ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, 6.29); ctx.fill();
+        ctx.fillStyle = "#faa"; ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, 6.28); ctx.fill();
         ctx.strokeStyle = "#f55"; ctx.lineWidth = 1; ctx.stroke();
       }
-      // 爆炸/冲击波光圈
       for (const bm of booms) {
         const k = 1 - bm.life / bm.max;
         ctx.globalAlpha = (1 - k) * .7;
         ctx.strokeStyle = bm.c; ctx.lineWidth = bm.nova ? 4 : 3;
         ctx.beginPath(); ctx.arc(bm.x, bm.y, bm.r * k, 0, 6.29); ctx.stroke();
       }
-      ctx.globalAlpha = 1;
-      // 闪电
       for (const b of bolts) {
         ctx.globalAlpha = b.life / .18;
         ctx.strokeStyle = "#5ff"; ctx.lineWidth = 2;
@@ -1055,7 +1348,6 @@
         }
         ctx.stroke();
       }
-      ctx.globalAlpha = 1;
       // 敌人
       for (const e of enemies) {
         if (e.elite) {
@@ -1064,7 +1356,9 @@
           ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 2.2, 0, 6.29); ctx.fill();
         }
         ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.rot);
-        ctx.fillStyle = e.col; ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
+        // 受击闪白
+        ctx.fillStyle = e.flash > 0 ? "#ffffff" : e.col;
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
         ctx.beginPath();
         for (let i = 0; i < e.shape; i++) {
           const a = i / e.shape * 6.28;
@@ -1072,22 +1366,36 @@
           i ? ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
         }
         ctx.closePath(); ctx.fill(); ctx.stroke();
-        if (e.elite) {
-          ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace"; ctx.textAlign = "center";
-          ctx.fillText("★", 0, 4);
-        }
+        if (e.elite) { ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace"; ctx.textAlign = "center"; ctx.fillText("★", 0, 4); }
         ctx.restore();
         if (e.hp < e.maxHp) {
           ctx.fillStyle = "#400"; ctx.fillRect(e.x - 14, e.y - e.r - 8, 28, 3);
           ctx.fillStyle = "#f55"; ctx.fillRect(e.x - 14, e.y - e.r - 8, 28 * e.hp / e.maxHp, 3);
         }
       }
-      for (const q of particles) {
-        ctx.globalAlpha = Math.min(1, q.life * 2);
+      for (let i = 0; i < particles.length; i++) {
+        const q = particles[i];
+        ctx.globalAlpha = Math.min(1, (q.life / (q.maxLife || q.life)) * 1.6);
         ctx.fillStyle = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.29); ctx.fill();
       }
       ctx.globalAlpha = 1;
-      if (state === "playing" || state === "levelup") {
+      // 黑洞
+      for (const h of holes) {
+        const g = ctx.createRadialGradient(h.x, h.y, h.core, h.x, h.y, h.pull);
+        g.addColorStop(0, "rgba(140,60,255,.35)"); g.addColorStop(1, "rgba(140,60,255,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, h.pull, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = "rgba(255,200,100,.22)"; ctx.lineWidth = 2; ctx.setLineDash([4, 10]);
+        ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 130, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(255,80,80,.35)"; ctx.lineWidth = 1.5; ctx.setLineDash([3, 7]);
+        ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 30, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(160,80,255,.5)"; ctx.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath(); ctx.ellipse(h.x, h.y, h.core + 14 + i * 14, (h.core + 14 + i * 14) * .45, h.rot + i, 0, 6.29); ctx.stroke();
+        }
+        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(h.x, h.y, h.core, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = "#a5f"; ctx.lineWidth = 2; ctx.stroke();
+      }
+      if (state === "playing" || state === "levelup" || state === "chest") {
         const p = player;
         for (const q of trail) {
           ctx.globalAlpha = q.life * 1.8; ctx.fillStyle = "#089";
@@ -1097,7 +1405,8 @@
         if (invuln > 0 && Math.floor(t / 60) % 2) ctx.globalAlpha = .4;
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
         ctx.fillStyle = "#d94"; ctx.strokeStyle = "#fa5"; ctx.lineWidth = 1.5;
-        ctx.beginPath(); p.verts.forEach((v, i) => {
+        ctx.beginPath();
+        p.verts.forEach((v, i) => {
           const x = Math.cos(v.a) * v.d, y = Math.sin(v.a) * v.d;
           i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
         });
@@ -1115,20 +1424,31 @@
       }
       for (const q of texts) {
         ctx.globalAlpha = Math.min(1, q.life);
-        ctx.fillStyle = q.c; ctx.font = (q.big ? "bold 18px" : "14px") + " monospace"; ctx.textAlign = "center";
+        ctx.fillStyle = q.c;
+        ctx.font = (q.big ? "bold 18px" : q.small ? "bold 13px" : "14px") + " monospace";
+        ctx.textAlign = "center";
         ctx.fillText(q.txt, q.x, q.y);
       }
       ctx.globalAlpha = 1;
       ctx.restore();
       ctx.strokeStyle = "rgba(80,120,200,.3)"; ctx.lineWidth = 3;
       ctx.strokeRect(-camX + sx, -camY + sy, W, H);
+      // 边缘指引：裂隙 + 宝箱
+      if (state === "playing") {
+        if (portal) edgeArrow(portal.x, portal.y, "rgba(94,234,212,.95)", "裂隙");
+        if (chest) edgeArrow(chest.x, chest.y, "rgba(253,224,71,.95)", "宝箱");
+      }
     }
 
     // ===== 主循环 =====
     let last = performance.now();
     function loop(t) {
       const dt = Math.min(.033, (t - last) / 1000); last = t;
-      if (state === "playing") update(dt);
+      if (hitStop > 0) {
+        hitStop -= dt; // 命中停顿：世界冻结但继续渲染
+      } else if (state === "playing" && !paused) {
+        update(dt);
+      }
       shake = Math.max(0, shake - dt * 30);
       draw(t);
       const m = Math.min(RUN_LEN, elapsed), mm = String(Math.floor(m / 60)).padStart(2, "0"),
@@ -1141,10 +1461,18 @@
       $("hpFill").style.width = (Math.max(0, hp) / maxHp * 100) + "%";
       $("xpFill").style.width = (xp / xpNeed * 100) + "%";
       $("dustRun").textContent = dustRun;
-      $("dustMult").textContent = dustMult().toFixed(1);
+      $("dustMult").textContent = (depthMult() * comboMult()).toFixed(2);
       $("lv").textContent = level;
       requestAnimationFrame(loop);
     }
+    $("backBtn").onclick = () => { location.href = "../index.html#games"; };
+    $("muteBtn").onclick = toggleMute;
+    $("pauseBtn").onclick = showPause;
+    addEventListener("keydown", e => {
+      if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+        if (paused) hidePause(); else showPause();
+      }
+    });
     $("best").textContent = (best ? ("最高纪录 " + best + " ｜ ") : "") + (bestDepth > 1 ? ("最深 " + bestDepth + "层") : "");
     reset(); state = "title";
     showTitle();
