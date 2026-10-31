@@ -6,10 +6,31 @@
 // 游戏列表（新增游戏：1. 把静态文件放入 games/ 目录；2. 在此数组加一条）
 export const games = [
   {
+    name: '煤与泪',
+    desc: '像素地牢射击，致敬以撒：15层楼一路往下打，多 Boss、道具商店、三槽存档',
+    link: 'https://zltot.github.io/soot-and-tears/',
+    icon: 'soot',
+    tag: 'Roguelike',
+  },
+  {
     name: '凡人·秘境苟道',
     desc: 'pc修仙题材割草，青元剑诀/噬金虫/九霄神雷，五关Boss战',
     link: 'https://zlToT.github.io/fanren-game/',
     icon: 'fanren',
+    tag: '割草',
+  },
+  {
+    name: '引力井',
+    desc: '按住牵引飞船滑行，绕黑洞捡碎片赚星尘，擦边引力弹弓加速，局外升级基地',
+    link: './games/gravity_well.html',
+    icon: 'gwell',
+    tag: '太空',
+  },
+  {
+    name: '引力井·歼灭',
+    desc: '黑洞引力场里的 10 分钟幸存者：自动开火、升级三选一拼 AOE build，深度越刷收益越高',
+    link: './games/gravity_well_shot.html',
+    icon: 'gwells',
     tag: '割草',
   },
   {
@@ -31,13 +52,6 @@ export const games = [
     desc: '黑块不断往下掉，只点黑块别踩白块，手速越快越刺激，漏一个就输',
     link: './games/piano.html',
     icon: 'piano',
-    tag: '反应',
-  },
-  {
-    name: '打地鼠',
-    desc: '地鼠冒头就打，限时 30 秒，看你能得多少分',
-    link: './games/mole.html',
-    icon: 'mole',
     tag: '反应',
   },
   {

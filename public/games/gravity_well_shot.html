@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <title>引力井 · 歼灭</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      background: #05060f;
+      font-family: "Segoe UI", monospace
+    }
+
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+
+    #hud {
+      position: fixed;
+      top: 12px;
+      left: 14px;
+      color: #9df3ff;
+      font-size: 14px;
+      pointer-events: none;
+      text-shadow: 0 0 6px #0af
+    }
+
+    .bar {
+      width: 180px;
+      height: 10px;
+      border: 1px solid #2af;
+      border-radius: 5px;
+      margin-top: 4px;
+      overflow: hidden
+    }
+
+    #fuelFill {
+      height: 100%;
+      background: linear-gradient(90deg, #0ff, #08f);
+      width: 100%
+    }
+
+    #hpBar {
+      border-color: #a33
+    }
+
+    #hpFill {
+      height: 100%;
+      background: linear-gradient(90deg, #f55, #a22);
+      width: 100%
+    }
+
+    #xpBar {
+      border-color: #3a3;
+      margin-top: 4px
+    }
+
+    #xpFill {
+      height: 100%;
+      background: linear-gradient(90deg, #5f5, #2a2);
+      width: 0%
+    }
+
+    #best {
+      margin-top: 6px;
+      color: #fc3;
+      font-size: 12px
+    }
+
+    #dustHud {
+      position: fixed;
+      top: 12px;
+      right: 14px;
+      color: #fd6;
+      font-size: 14px;
+      text-align: right;
+      text-shadow: 0 0 6px #a60
+    }
+
+    #xpWrap {
+      margin-top: 4px;
+      color: #8f8;
+      font-size: 12px
+    }
+
+    #timer {
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 5, 15, .78);
+      z-index: 10;
+      pointer-events: none
+    }
+
+    #panel {
+      text-align: center;
+      color: #cfe;
+      padding: 26px 36px;
+      border: 1px solid #234;
+      border-radius: 14px;
+      background: rgba(10, 15, 35, .94);
+      box-shadow: 0 0 40px rgba(0, 120, 255, .15);
+      max-height: 92vh;
+      overflow: auto;
+      pointer-events: auto
+    }
+
+    #panel h1 {
+      font-size: 30px;
+      color: #7df;
+      letter-spacing: 6px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 14px #08f
+    }
+
+    #panel p {
+      font-size: 13px;
+      color: #8ac;
+      line-height: 1.7;
+      margin-bottom: 12px
+    }
+
+    #panel button {
+      font-size: 15px;
+      padding: 8px 26px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #0a2a4a;
+      color: #7df;
+      border: 1px solid #2af;
+      transition: .2s;
+      margin: 4px
+    }
+
+    #panel button:hover:not(:disabled) {
+      background: #0d4a7a;
+      box-shadow: 0 0 16px #0af
+    }
+
+    #reason {
+      color: #f88;
+      margin-bottom: 8px
+    }
+
+    #win {
+      color: #7f7;
+      margin-bottom: 8px
+    }
+
+    .card {
+      display: block;
+      width: 340px;
+      text-align: left;
+      background: rgba(20, 40, 70, .7);
+      border: 1px solid #2af;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin: 7px auto;
+      cursor: pointer;
+      transition: .15s
+    }
+
+    .card:hover {
+      background: rgba(30, 70, 120, .8);
+      box-shadow: 0 0 14px #0af;
+      transform: translateX(4px)
+    }
+
+    .card .nm {
+      color: #7df;
+      font-size: 15px;
+      font-weight: bold
+    }
+
+    .card .ds {
+      color: #9bc;
+      font-size: 12px;
+      margin-top: 2px
+    }
+
+    .shopItem {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      background: rgba(20, 30, 60, .6);
+      border: 1px solid #234;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin: 6px 0;
+      min-width: 380px
+    }
+
+    .shopItem .info {
+      flex: 1
+    }
+
+    .shopItem .nm {
+      color: #7df;
+      font-size: 14px
+    }
+
+    .shopItem .ds {
+      color: #789;
+      font-size: 11px
+    }
+
+    .shopItem .lv {
+      color: #fc3;
+      font-size: 11px
+    }
+
+    .shopItem button {
+      font-size: 12px;
+      padding: 5px 12px;
+      white-space: nowrap
+    }
+
+    .pips {
+      color: #0cf;
+      font-size: 11px;
+      letter-spacing: 2px
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <span id="timer">00:00</span> ｜ 分数 <span id="score">0</span> ｜ 深度 <span id="depth">1</span> ｜ 击杀 <span
+      id="kills">0</span>
+    <div id="hpBar" class="bar">
+      <div id="hpFill"></div>
+    </div>
+    <div class="bar">
+      <div id="fuelFill"></div>
+    </div>
+    <div id="xpBar" class="bar">
+      <div id="xpFill"></div>
+    </div>
+    <div id="best"></div>
+  </div>
+  <div id="dustHud">✦ <span id="dustRun">0</span>（×<span id="dustMult">1.0</span>）
+    <div id="xpWrap">LV <span id="lv">1</span></div>
+  </div>
+  <div id="overlay">
+    <div id="panel" style="display:none"></div>
+  </div>
+
+  <script>
+    "use strict";
+    const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+    let CW = 0, CH = 0;
+    function resize() { CW = cv.width = innerWidth; CH = cv.height = innerHeight; }
+    addEventListener("resize", resize); resize();
+    const W = 3000, H = 2200;
+    const $ = id => document.getElementById(id);
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const RUN_LEN = 600; // 10分钟撤离
+
+    // ===== 局外存档 =====
+    const COSTS = [10, 20, 35, 55, 80];
+    const UPGRADES = [
+      { key: "thrust", nm: "⚙️ 引擎强化", ds: "推力 +8%/级", max: 5 },
+      { key: "fuel", nm: "⛽ 扩容燃料仓", ds: "燃料上限 +15/级", max: 5 },
+      { key: "hull", nm: "❤️ 装甲板", ds: "最大船体 +1/级", max: 3, costs: [60, 110, 170] },
+      { key: "weapon", nm: "⚔️ 武器核心", ds: "基础伤害 +1/级", max: 3, costs: [80, 140, 220] },
+      { key: "shield", nm: "🛡️ 出厂护盾", ds: "每局开局自带一层护盾", max: 1, costs: [120] },
+      { key: "plunder", nm: "🏴‍☠️ 掠夺者", ds: "金色碎片星尘 +1/级", max: 4, costs: [20, 40, 70, 110] },
+    ];
+    let save;
+    function loadSave() {
+      try { save = JSON.parse(localStorage.getItem("gw_meta2")) || null; } catch (e) { save = null; }
+      if (!save || typeof save !== "object") save = { dust: 0, up: {} };
+      UPGRADES.forEach(u => { if (!Number.isInteger(save.up[u.key])) save.up[u.key] = 0; });
+    }
+    function persist() { localStorage.setItem("gw_meta2", JSON.stringify(save)); }
+    function lv(k) { return save.up[k]; }
+    function upCost(u) { const l = lv(u.key); return u.costs ? u.costs[l] : COSTS[l]; }
+    loadSave();
+
+    // ===== 局内升级池（AOE强力件） =====
+    const RUNUP = [
+      { id: "firerate", nm: "🔥 速射机构", ds: "射击间隔 -18%", max: 5, apply: r => r.cd *= 0.82 },
+      { id: "dmg", nm: "💥 弹头强化", ds: "所有伤害 +35%", max: 5, apply: r => r.dmgMul *= 1.35 },
+      { id: "multi", nm: "🔱 多重炮", ds: "齐射 +1 发（平行弹幕）", max: 3, apply: r => r.multi += 1 },
+      { id: "pierce", nm: "🎯 穿透弹头", ds: "子弹贯穿 +2 个敌人", max: 3, apply: r => r.pierce += 2 },
+      { id: "boom", nm: "💣 爆破弹头", ds: "子弹命中爆炸！范围+威力提升", max: 4, apply: r => { r.boom = r.boom ? r.boom + 35 : 90; r.boomLvl++; } },
+      { id: "nova", nm: "🌟 冲击新星", ds: "周期冲击波：高伤+击退", max: 4, apply: r => r.nova += 1 },
+      { id: "chain", nm: "⚡ 连锁闪电", ds: "电弧在敌人间跳跃，+1 跳", max: 4, apply: r => r.chain += 1 },
+      { id: "engine", nm: "🚀 引擎过载", ds: "牵引推力 +12%", max: 5, apply: r => r.engine *= 1.12 },
+      { id: "regen", nm: "♻️ 能量循环", ds: "低能量保底回充速度 +25%", max: 4, apply: r => r.regen *= 1.25 },
+      { id: "repair", nm: "🛠️ 紧急维修", ds: "最大船体 +1 并完全修复", max: 9, apply: () => { maxHp++; hp = maxHp; } },
+      { id: "shieldc", nm: "🛡️ 应急护盾", ds: "立即获得一层护盾", max: 9, apply: () => { shieldUp = true; } },
+    ];
+    let run = null, runLv = null;
+
+    // ===== 刷怪导演：按分钟脚本 =====
+    // rate=每秒刷怪预算, cap=场上上限, w=种类权重, surge=该分钟开始的怪潮规模
+    const WAVES = [
+      { min: 0, cap: 30, rate: 2.2, w: { swarm: 1 } },
+      { min: 1, cap: 50, rate: 3.6, w: { swarm: 1 }, surge: 24 },
+      { min: 2, cap: 70, rate: 4.8, w: { swarm: 1, bomber: .3 }, surge: 28 },
+      { min: 3, cap: 90, rate: 6.0, w: { swarm: 1, bomber: .35, shooter: .3 }, surge: 32 },
+      { min: 4, cap: 120, rate: 7.6, w: { swarm: 1.2, bomber: .4, shooter: .4, tank: .15 }, surge: 40 },
+      { min: 5, cap: 150, rate: 9.2, w: { swarm: 1.2, bomber: .45, shooter: .45, tank: .2, splitter: .3 }, surge: 48 },
+      { min: 6, cap: 180, rate: 10.8, w: { swarm: 1.4, bomber: .5, shooter: .5, tank: .25, splitter: .4 }, surge: 56 },
+      { min: 7, cap: 210, rate: 12.4, w: { swarm: 1.5, bomber: .6, shooter: .55, tank: .3, splitter: .5 }, surge: 64 },
+      { min: 8, cap: 240, rate: 14.4, w: { swarm: 1.6, bomber: .7, shooter: .6, tank: .35, splitter: .6 }, surge: 72 },
+      { min: 9, cap: 260, rate: 17, w: { swarm: 2, bomber: .8, shooter: .7, tank: .4, splitter: .7 }, surge: 80 },
+    ];
+
+    function waveCfg() { const m = Math.min(9, Math.floor(elapsed / 60)); return WAVES[m]; }
+
+    // ===== 运行时 =====
+    let state = "title", holding = false;
+    let player, fragments, holes, particles, stars, texts, portal, enemies, bullets, ebullets, orbs, booms, bolts;
+    let orbPool = [];
+    let fuel, fuelMax, hp, maxHp, score, best = +localStorage.getItem("gw_best3") || 0, bestDepth = +localStorage.getItem("gw_bestd3") || 1;
+    let camX = 0, camY = 0, shake = 0, dustRun = 0, shieldUp = false, invuln = 0, trail = [];
+    let depth = 1, fragCount = 0, kills = 0, combo = 0, comboT = 0, xp = 0, level = 1, xpNeed = 5, elapsed = 0, fireT = 0;
+    let budget = 0, surgeMin = -1, eliteTimes = [], won = false;
+    const mouse = { x: 0, y: 0 };
+    stars = [];
+    for (let i = 0; i < 220; i++)stars.push({
+      x: Math.random() * CW * 2, y: Math.random() * CH * 2,
+      s: Math.random() * 1.6 + .4, l: i < 130 ? .25 : .55
+    });
+
+    function stats() {
+      return {
+        thrust: 250 * (1 + .08 * lv("thrust")),
+        dmg: 1 + lv("weapon"),
+        plunder: lv("plunder"),
+      };
+    }
+    function dustMult() { return 1 + 0.5 * (depth - 1); }
+
+    function reset() {
+      player = {
+        x: W / 2, y: H / 2, vx: 0, vy: 0, r: 12, ang: 0,
+        verts: Array.from({ length: 8 }, (_, i) => ({ a: i / 8 * Math.PI * 2, d: rnd(8, 13) }))
+      };
+      fragments = []; holes = []; particles = []; trail = []; texts = []; portal = null;
+      enemies = []; bullets = []; ebullets = []; orbs = []; booms = []; bolts = [];
+      fuelMax = 100 + 15 * lv("fuel"); fuel = fuelMax;
+      maxHp = 3 + lv("hull"); hp = maxHp;
+      score = 0; shake = 0; dustRun = 0; shieldUp = lv("shield") > 0; invuln = 1.5;
+      depth = 1; fragCount = 0; kills = 0; combo = 0; comboT = 0; xp = 0; level = 1; xpNeed = 5;
+      elapsed = 0; fireT = 0; budget = 0; surgeMin = -1; won = false;
+      eliteTimes = [150, 330, 510, 690, 870];
+      // 基础：快射速 + 2发清小怪
+      run = {
+        cd: .35, dmgMul: 1, multi: 1, pierce: 0, boom: 0, boomLvl: 0, nova: 0, novaT: 2,
+        chain: 0, chainT: 2, engine: 1, regen: 1, bspd: 1, range: 640
+      };
+      runLv = {};
+      for (let i = 0; i < 2; i++)spawnHole(true);
+      for (let i = 0; i < 10; i++)spawnFragment();
+    }
+    function spawnHole(init) {
+      let x, y, t = 0;
+      do { x = rnd(200, W - 200); y = rnd(200, H - 200); t++; }
+      while (t < 50 && (Math.hypot(x - player.x, y - player.y) < (init ? 500 : 700) ||
+        holes.some(h => Math.hypot(x - h.x, y - h.y) < 420)));
+      holes.push({ x, y, core: 26, pull: 500, rot: rnd(0, 6), grazed: false });
+    }
+    function spawnFragment() {
+      let x, y, t = 0;
+      do { x = rnd(80, W - 80); y = rnd(80, H - 80); t++; }
+      while (t < 50 && (Math.hypot(x - player.x, y - player.y) < 420 ||
+        holes.some(h => Math.hypot(x - h.x, y - h.y) < 300)));
+      fragments.push({ x, y, ph: rnd(0, 6), risky: false });
+    }
+    function spawnAny() {
+      if (holes.length && Math.random() < 0.3) {
+        const h = holes[Math.floor(Math.random() * holes.length)];
+        const a = rnd(0, 6.28), dist = rnd(h.pull * 0.5, h.pull * 0.78);
+        fragments.push({
+          x: Math.max(40, Math.min(W - 40, h.x + Math.cos(a) * dist)),
+          y: Math.max(40, Math.min(H - 40, h.y + Math.sin(a) * dist)), ph: rnd(0, 6), risky: true
+        });
+      } else spawnFragment();
+    }
+    function spawnPortal() {
+      let x, y, t = 0;
+      do { x = rnd(200, W - 200); y = rnd(200, H - 200); t++; }
+      while (t < 80 && (Math.hypot(x - player.x, y - player.y) < 600 ||
+        holes.some(h => Math.hypot(x - h.x, y - h.y) < h.pull + 100)));
+      portal = { x, y, rot: 0 }; beep(520, .3, "sine", .15, 1040);
+    }
+
+    // ===== 怪物工厂 =====
+    function hpMul() { return 1 + elapsed * 0.045 + (depth - 1) * 0.5; }
+    function baseEnemy(x, y, type) {
+      const m = hpMul();
+      const T = {
+        swarm: { r: 8, hp: 2 * m, spd: rnd(125, 165), xpv: 1, sc: 3, col: "#f55", dmg: 1, shape: 3 },
+        bomber: { r: 10, hp: 3 * m, spd: 215, xpv: 1, sc: 5, col: "#fa5", dmg: 1, shape: 4 },
+        shooter: { r: 11, hp: 4 * m, spd: 70, xpv: 2, sc: 8, col: "#f8f", dmg: 1, shape: 5, ft: rnd(1, 2.5) },
+        tank: { r: 20, hp: 26 * m, spd: 45, xpv: 5, sc: 20, col: "#8ac", dmg: 2, shape: 6 },
+        splitter: { r: 13, hp: 6 * m, spd: 100, xpv: 2, sc: 8, col: "#ff5", dmg: 1, shape: 4 },
+        mini: { r: 6, hp: 1 * m, spd: 165, xpv: 1, sc: 2, col: "#fd5", dmg: 1, shape: 3 },
+        elite: { r: 24, hp: 60 * m, spd: 80, xpv: 12, sc: 80, col: "#f0f", dmg: 2, shape: 6, ft: 1.8, elite: true },
+      }[type];
+      return {
+        x, y, vx: 0, vy: 0, type, r: T.r, hp: T.hp, maxHp: T.hp, spd: T.spd, xpv: T.xpv, sc: T.sc,
+        col: T.col, dmg: T.dmg, shape: T.shape, rot: 0, ft: T.ft || 0, hitCd: 0, elite: T.elite
+      };
+    }
+    function ringPos() {
+      const a = rnd(0, 6.28), d = Math.max(CW, CH) / 2 + rnd(60, 260);
+      return {
+        x: Math.max(40, Math.min(W - 40, player.x + Math.cos(a) * d)),
+        y: Math.max(40, Math.min(H - 40, player.y + Math.sin(a) * d))
+      };
+    }
+    function pickType(w) {
+      let tot = 0; for (const k in w) tot += w[k];
+      let pick = Math.random() * tot;
+      for (const k in w) { pick -= w[k]; if (pick <= 0) return k; }
+      return "swarm";
+    }
+    // 持续流出：不扎堆，swarm三只松散
+    function directorSpawn() {
+      const cfg = waveCfg();
+      budget += cfg.rate * 0.5; // 半秒节拍
+      while (budget >= 1) {
+        budget -= 1;
+        if (enemies.length >= cfg.cap) break;
+        const type = pickType(cfg.w);
+        const pos = ringPos();
+        if (type === "swarm") {
+          for (let i = 0; i < 3 && enemies.length < cfg.cap; i++)
+            enemies.push(baseEnemy(pos.x + rnd(-90, 90), pos.y + rnd(-90, 90), "swarm"));
+        } else enemies.push(baseEnemy(pos.x, pos.y, type));
+      }
+    }
+    function spawnSurge(n) {
+      const a = rnd(0, 6.28);
+      texts.push({ x: player.x, y: player.y - 60, txt: "⚠ 怪潮来袭！", life: 2, c: "#f55", big: true });
+      beep(220, .5, "sawtooth", .2, 440);
+      const cfg = waveCfg();
+      for (let i = 0; i < n; i++) {
+        const d = Math.max(CW, CH) / 2 + 80 + i * 18, aa = a + rnd(-.4, .4);
+        const x = Math.max(50, Math.min(W - 50, player.x + Math.cos(aa) * d));
+        const y = Math.max(50, Math.min(H - 50, player.y + Math.sin(aa) * d));
+        enemies.push(baseEnemy(x, y, Math.random() < .85 ? "swarm" : "bomber"));
+      }
+    }
+    function spawnElite() {
+      const pos = ringPos();
+      enemies.push(baseEnemy(pos.x, pos.y, "elite"));
+      texts.push({ x: pos.x, y: pos.y - 40, txt: "⭐ 精英出现", life: 2, c: "#f0f", big: true });
+      beep(110, .6, "square", .2, 60);
+    }
+
+    // ===== 音频 =====
+    let AC = null, humGain = null;
+    function audio() {
+      if (!AC) {
+        AC = new (window.AudioContext || window.webkitAudioContext)();
+        const hum = AC.createOscillator(); hum.type = "sawtooth"; hum.frequency.value = 55;
+        const lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 220;
+        humGain = AC.createGain(); humGain.gain.value = 0;
+        hum.connect(lp).connect(humGain).connect(AC.destination); hum.start();
+      }
+    }
+    function beep(f, d, type = "sine", vol = .18, slide = 0) {
+      if (!AC) return; const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(slide, 1), t + d);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+      o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d);
+    }
+    const sShoot = () => beep(880, .04, "square", .03, 440);
+    const sHit = () => beep(200, .05, "square", .07, 80);
+    const sKill = () => beep(440, .08, "sawtooth", .08, 110);
+    const sOrb = () => beep(980, .04, "sine", .05, 1400);
+    const sCollect = () => beep(720, .1, "sine", .18, 1100);
+    const sSling = () => beep(240, .25, "sawtooth", .15, 900);
+    const sHurt = () => beep(150, .25, "square", .22, 60);
+    const sLevel = () => { beep(520, .12, "sine", .2, 780); setTimeout(() => beep(780, .12, "sine", .2, 1170), 100); setTimeout(() => beep(1170, .2, "sine", .2), 200); };
+    const sDepth = () => { beep(440, .15, "sine", .2, 880); setTimeout(() => beep(660, .2, "sine", .2, 1320), 120); };
+    const sDeath = () => { beep(180, .7, "sawtooth", .25, 35); beep(90, .9, "square", .15, 25); };
+    const sBuy = () => { beep(520, .08, "triangle", .15, 780); setTimeout(() => beep(880, .12, "triangle", .15), 80); };
+    const sShield = () => beep(300, .3, "square", .2, 900);
+    const sZap = () => beep(1200, .08, "sawtooth", .1, 300);
+    const sNova = () => beep(160, .3, "triangle", .2, 600);
+    const sBoom = () => beep(120, .2, "square", .15, 40);
+
+    // ===== 输入 =====
+    function toWorld(cx, cy) { return { x: cx + camX, y: cy + camY }; }
+    cv.addEventListener("pointerdown", e => {
+      audio(); if (state !== "playing") return;
+      holding = true; Object.assign(mouse, toWorld(e.clientX, e.clientY));
+    });
+    cv.addEventListener("pointermove", e => { Object.assign(mouse, toWorld(e.clientX, e.clientY)); });
+    function releaseHold() { holding = false; }
+    addEventListener("pointerup", releaseHold);
+    addEventListener("pointercancel", releaseHold);
+    addEventListener("blur", releaseHold);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) holding = false; });
+
+    // ===== 界面 =====
+    const panel = $("panel");
+    function showTitle(msg, reason, win) {
+      state = "title"; $("overlay").style.display = "flex"; panel.style.display = "block";
+      panel.innerHTML =
+        "<h1>引 力 井</h1>" +
+        "<p>" + (msg || "按住牵引飞船，武器自动开火<br>" +
+          "<span style='color:#f55'>坚持 10 分钟撤离成功</span>——怪会一波比一波凶<br>" +
+          "升级自动强化（伤害/攻速/能量），再从<span style='color:#7f7'>三选一</span>里拼AOE build<br>" +
+          "爆破弹头 · 冲击新星 · 环绕刃 · 连锁闪电——割起来<br>" +
+          "能量低于30%保底回充；捡碎片补满；贴黑洞可弹弓") + "</p>" +
+        (win ? "<div id='win'>🏆 撤离成功！奖励已发放</div>" : "") +
+        (reason ? "<div id='reason'>" + reason + "</div>" : "") +
+        "<div style='color:#fd6;font-size:13px;margin-bottom:12px'>✦ 星尘库存 " + save.dust + "</div>" +
+        "<button id='btn'>开 始</button><button id='btnShop'>升 级 基 地</button>";
+      $("btn").onclick = () => { audio(); $("overlay").style.display = "none"; reset(); state = "playing"; };
+      $("btnShop").onclick = showShop;
+    }
+    function showShop() {
+      state = "shop"; $("overlay").style.display = "flex"; panel.style.display = "block";
+      let html = "<h1 style='font-size:24px'>升 级 基 地</h1>" +
+        "<div style='color:#fd6;font-size:14px;margin-bottom:10px'>✦ 星尘库存 " + save.dust + "</div>";
+      UPGRADES.forEach((u, i) => {
+        const l = lv(u.key), maxed = l >= u.max, cost = upCost(u);
+        const pips = "●".repeat(l) + "○".repeat(u.max - l);
+        html += "<div class='shopItem'><div class='info'><div class='nm'>" + u.nm +
+          " <span class='pips'>" + pips + "</span></div><div class='ds'>" + u.ds + "</div>" +
+          "<div class='lv'>" + (maxed ? "已满级" : "") + "</div></div>" +
+          "<button data-i='" + i + "' " + (maxed || save.dust < cost ? "disabled" : "") + ">" +
+          (maxed ? "MAX" : "✦" + cost) + "</button></div>";
+      });
+      html += "<button id='btnBack' style='margin-top:10px'>返 回</button>";
+      panel.innerHTML = html;
+      panel.querySelectorAll(".shopItem button").forEach(b => {
+        b.onclick = () => {
+          const u = UPGRADES[+b.dataset.i], cost = upCost(u);
+          if (save.dust < cost || lv(u.key) >= u.max) return;
+          save.dust -= cost; save.up[u.key]++; persist(); sBuy(); showShop();
+        };
+      });
+      $("btnBack").onclick = () => showTitle();
+    }
+    function showLevelUp() {
+      state = "levelup"; $("overlay").style.display = "flex"; panel.style.display = "block";
+      const pool = RUNUP.filter(u => (runLv[u.id] || 0) < u.max);
+      const picks = [];
+      while (picks.length < 3 && pool.length) {
+        const i = Math.floor(Math.random() * pool.length);
+        picks.push(pool.splice(i, 1)[0]);
+      }
+      let html = "<h1 style='font-size:24px'>⬆ LV " + level + "</h1>" +
+        "<p style='color:#7f7'>自动强化：攻速+3.5% · 伤害+12% · 能量回充25%</p>";
+      if (!picks.length) {
+        html += "<div class='card'><div class='nm'>✦ 能量晶体</div><div class='ds'>升级已满 → 星尘 +10</div></div>";
+      } else picks.forEach((u, i) => {
+        html += "<div class='card' data-i='" + i + "'><div class='nm'>" + u.nm +
+          " <span style='color:#0cf;font-size:11px'>已持有 " + (runLv[u.id] || 0) + "</span></div>" +
+          "<div class='ds'>" + u.ds + "</div></div>";
+      });
+      panel.innerHTML = html;
+      panel.querySelectorAll(".card").forEach((el, i) => {
+        el.onclick = () => {
+          if (picks.length) { const u = picks[i]; u.apply(run); runLv[u.id] = (runLv[u.id] || 0) + 1; }
+          else save.dust += 10;
+          persist(); sBuy();
+          $("overlay").style.display = "none"; panel.style.display = "none"; state = "playing";
+        };
+      });
+    }
+    function endRun(winFlag, reason) {
+      state = "dead"; holding = false;
+      if (winFlag) {
+        dustRun += 50; won = true;
+        for (let i = 0; i < 80; i++) {
+          const a = rnd(0, 6.28);
+          particles.push({
+            x: player.x, y: player.y, vx: Math.cos(a) * rnd(60, 300), vy: Math.sin(a) * rnd(60, 300),
+            life: rnd(.5, 1.5), c: "#5f5", r: rnd(1, 4)
+          });
+        }
+        sLevel(); setTimeout(() => sLevel(), 300); setTimeout(() => sLevel(), 600);
+      } else {
+        shake = 18; sDeath();
+        for (let i = 0; i < 60; i++) {
+          const a = rnd(0, 6.28), v = rnd(30, 260);
+          particles.push({
+            x: player.x, y: player.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+            life: rnd(.5, 1.4), c: "#fa5", r: rnd(1.5, 4)
+          });
+        }
+      }
+      if (humGain) humGain.gain.value = 0;
+      const nr = score > best;
+      if (nr) { best = score; localStorage.setItem("gw_best3", best); }
+      if (depth > bestDepth) { bestDepth = depth; localStorage.setItem("gw_bestd3", bestDepth); }
+      save.dust += dustRun; persist();
+      const head = winFlag ? ("🏆 撤离成功！ ✦+50 ｜ ") : "";
+      setTimeout(() => showTitle(
+        head + "分数 " + score + " ｜ 击杀 " + kills + " ｜ 深度 " + depth + " ｜ ✦+" + dustRun,
+        winFlag ? null : ("💀 " + reason + (nr ? "　<span style='color:#fc3'>★ 新纪录！</span>" : ""))), winFlag ? 600 : 900);
+    }
+    function hurt(n) {
+      if (invuln > 0) return;
+      if (shieldUp) { shieldUp = false; invuln = 1; sShield(); shake = 10; return; }
+      hp -= n; invuln = 1.2; sHurt(); shake = 12;
+      if (hp <= 0) endRun(false, "船体被击毁");
+    }
+    // 经验晶体对象池投放
+    function dropOrbs(x, y, n) {
+      for (let k = 0; k < n; k++) {
+        const a = rnd(0, 6.28);
+        const o = orbPool.pop() || {};
+        o.x = x + Math.cos(a) * rnd(0, 18);
+        o.y = y + Math.sin(a) * rnd(0, 18);
+        o.ph = rnd(0, 6); o.age = 0;
+        orbs.push(o);
+      }
+    }
+
+    function killEnemy(i) {
+      const e = enemies[i];
+      kills++; combo++; comboT = 2.5;
+      score += e.sc; explode(e); sKill();
+      if (combo % 10 === 0) {
+        texts.push({ x: e.x, y: e.y - 20, txt: "连杀 ×" + combo + "!", life: 1.2, c: "#fc6", big: true });
+        shake = Math.max(shake, 6);
+      }
+      if (e.type === "splitter") {
+        for (let k = 0; k < 3; k++) {
+          const a = rnd(0, 6.28);
+          enemies.push(baseEnemy(e.x + Math.cos(a) * 14, e.y + Math.sin(a) * 14, "mini"));
+        }
+      }
+      if (e.elite) {
+        shake = Math.max(shake, 14); hp = Math.min(maxHp, hp + 1);
+        texts.push({ x: e.x, y: e.y - 30, txt: "精英击破！船体+1", life: 1.5, c: "#f0f", big: true });
+      }
+      dropOrbs(e.x, e.y, e.xpv);
+      enemies.splice(i, 1);
+    }
+    function explode(e) {
+      const n = e.elite ? 40 : (e.r > 15 ? 20 : 12);
+      for (let k = 0; k < n; k++) {
+        const a = rnd(0, 6.28);
+        particles.push({
+          x: e.x, y: e.y, vx: Math.cos(a) * rnd(40, 220), vy: Math.sin(a) * rnd(40, 220),
+          life: rnd(.3, .8), c: e.col, r: rnd(1, 3.5)
+        });
+      }
+    }
+    // AOE爆炸结算
+    function doBoom(x, y, r, dmg, nova, c) {
+      booms.push({ x, y, r, dmg, life: .35, max: .35, nova, c });
+    }
+
+    // ===== 逻辑 =====
+    function update(dt) {
+      const p = player, st = stats();
+      elapsed += dt;
+      if (invuln > 0) invuln -= dt;
+      if (comboT > 0) { comboT -= dt; if (comboT <= 0) combo = 0; }
+      // 10分钟撤离成功
+      if (elapsed >= RUN_LEN) { endRun(true); return; }
+      // 移动
+      if (holding && fuel > 0) {
+        const dx = mouse.x - p.x, dy = mouse.y - p.y, dist = Math.hypot(dx, dy);
+        if (dist > 6) {
+          const a = st.thrust * run.engine * Math.min(1, dist / 400);
+          p.vx += dx / dist * a * dt; p.vy += dy / dist * a * dt;
+        }
+        fuel -= 9 * dt;
+        if (humGain) humGain.gain.value = .07;
+        for (let i = 0; i < 2; i++)particles.push({
+          x: p.x + rnd(-4, 4), y: p.y + rnd(-4, 4),
+          vx: -p.vx * .2 + rnd(-30, 30), vy: -p.vy * .2 + rnd(-30, 30), life: rnd(.2, .5), c: "#0cf", r: rnd(1, 2.5)
+        });
+      } else if (humGain) humGain.gain.value = 0;
+      if (fuel < fuelMax * 0.3) fuel = Math.min(fuelMax * 0.3, fuel + 7 * run.regen * dt);
+      // 黑洞
+      for (const h of holes) {
+        h.rot += dt * 2;
+        const dx = h.x - p.x, dy = h.y - p.y, dist = Math.hypot(dx, dy);
+        if (dist < h.core + 8) {
+          if (shieldUp) {
+            shieldUp = false; invuln = 1.5; sShield(); shake = 12;
+            p.vx = dx / dist * 450; p.vy = dy / dist * 450;
+          }
+          else if (invuln <= 0) { endRun(false, "被黑洞吞噬了"); return; }
+          else { p.vx = dx / dist * 450; p.vy = dy / dist * 450; }
+        }
+        if (dist < h.pull) {
+          const a = Math.min(200, 1.6e6 / (dist * dist));
+          p.vx += dx / dist * a * dt; p.vy += dy / dist * a * dt;
+          const spIn = (p.vx * dx + p.vy * dy) / dist;
+          if (spIn > 260) { const ex = spIn - 260; p.vx -= dx / dist * ex; p.vy -= dy / dist * ex; }
+        }
+        const grazeR = h.core + 130, sp0 = Math.hypot(p.vx, p.vy);
+        if (dist < grazeR && dist > h.core + 10 && sp0 > 120) h.grazed = true;
+        else if (h.grazed && dist > grazeR + 60) {
+          h.grazed = false;
+          if (sp0 > 100) {
+            p.vx *= 1.45; p.vy *= 1.45; sSling(); shake = Math.max(shake, 5);
+            texts.push({ x: p.x, y: p.y - 24, txt: "弹弓!", life: .9, c: "#fc6" });
+          }
+        }
+      }
+      const sp = Math.hypot(p.vx, p.vy);
+      if (sp > 620) { p.vx *= 620 / sp; p.vy *= 620 / sp; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.ang += dt * (.5 + sp * .002);
+      trail.push({ x: p.x, y: p.y, life: .4, sp });
+      for (let i = trail.length - 1; i >= 0; i--) { trail[i].life -= dt; if (trail[i].life <= 0) trail.splice(i, 1); }
+      if (p.x < p.r) { p.x = p.r; p.vx *= -.7; } if (p.x > W - p.r) { p.x = W - p.r; p.vx *= -.7; }
+      if (p.y < p.r) { p.y = p.r; p.vy *= -.7; } if (p.y > H - p.r) { p.y = H - p.r; p.vy *= -.7; }
+      // ===== 刷怪导演 =====
+      const cfg = waveCfg();
+      directorSpawn();
+      // 整分钟怪潮
+      const curMin = Math.floor(elapsed / 60);
+      if (curMin !== surgeMin && cfg.surge) { surgeMin = curMin; spawnSurge(cfg.surge); }
+      // 定点精英
+      if (eliteTimes.length && elapsed >= eliteTimes[0]) { eliteTimes.shift(); spawnElite(); }
+      // ===== 敌人AI =====
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        e.rot += dt * 3; if (e.hitCd > 0) e.hitCd -= dt;
+        const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
+        if (e.type === "shooter" || e.elite) {
+          const want = 350, dir = dist > want + 40 ? 1 : (dist < want - 60 ? -1 : 0);
+          e.vx += dx / dist * 300 * dir * dt; e.vy += dy / dist * 300 * dir * dt;
+          e.ft -= dt;
+          if (e.ft <= 0 && dist < 650) {
+            e.ft = e.elite ? 1.8 : 2.5;
+            const a = Math.atan2(dy, dx);
+            ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 180, vy: Math.sin(a) * 180, life: 4 });
+            if (e.elite) for (const off of [-.25, .25])
+              ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a + off) * 180, vy: Math.sin(a + off) * 180, life: 4 });
+          }
+        } else {
+          e.vx += dx / dist * 300 * dt; e.vy += dy / dist * 300 * dt;
+        }
+        const es = Math.hypot(e.vx, e.vy);
+        if (es > e.spd) { e.vx *= e.spd / es; e.vy *= e.spd / es; }
+        e.x += e.vx * dt; e.y += e.vy * dt;
+        if (dist < e.r + p.r + 2) {
+          hurt(e.dmg);
+          if (state !== "playing") return;
+          explode(e); enemies.splice(i, 1); continue;
+        }
+        for (const h of holes) {
+          const hx = h.x - e.x, hy = h.y - e.y, hd = Math.hypot(hx, hy);
+          if (hd < h.pull) {
+            const a = Math.min(220, 1.8e6 / (hd * hd));
+            e.vx += hx / hd * a * dt; e.vy += hy / hd * a * dt;
+          }
+          if (hd < h.core + 6) {
+            explode(e); enemies.splice(i, 1);
+            texts.push({ x: e.x, y: e.y, txt: "送进黑洞!", life: 1, c: "#a5f" }); break;
+          }
+        }
+      }
+      // ===== 冲击新星 =====
+      if (run.nova > 0) {
+        run.novaT -= dt;
+        if (run.novaT <= 0) {
+          run.novaT = Math.max(2.2, 4.5 - .5 * run.nova);
+          doBoom(p.x, p.y, 150 + 55 * run.nova, 10 * run.nova * run.dmgMul, true, "#5ff");
+          sNova(); shake = Math.max(shake, 7);
+          texts.push({ x: p.x, y: p.y - 30, txt: "新星!", life: .6, c: "#5ff" });
+        }
+      }
+      // ===== 连锁闪电 =====
+      if (run.chain > 0) {
+        run.chainT -= dt;
+        if (run.chainT <= 0) {
+          run.chainT = 2.2;
+          // 找最近敌人起跳
+          let cur = null, cd = 520;
+          for (const e of enemies) {
+            const d2 = Math.hypot(e.x - p.x, e.y - p.y);
+            if (d2 < cd) { cd = d2; cur = e; }
+          }
+          if (cur) {
+            sZap();
+            const jumps = run.chain + 1;
+            let px = p.x, py = p.y;
+            const hitSet = new Set();
+            for (let j = 0; j < jumps && cur; j++) {
+              bolts.push({ x1: px, y1: py, x2: cur.x, y2: cur.y, life: .18 });
+              cur.hp -= 9 * run.dmgMul; hitSet.add(cur);
+              for (let k = 0; k < 6; k++)particles.push({
+                x: cur.x, y: cur.y,
+                vx: rnd(-100, 100), vy: rnd(-100, 100), life: rnd(.15, .3), c: "#5ff", r: rnd(1, 2)
+              });
+              if (cur.hp <= 0) { const idx = enemies.indexOf(cur); if (idx >= 0) killEnemy(idx); }
+              px = cur.x; py = cur.y;
+              // 跳到下一个最近的未命中敌人
+              let nxt = null, nd = 260;
+              for (const e of enemies) {
+                if (hitSet.has(e)) continue;
+                const d2 = Math.hypot(e.x - px, e.y - py);
+                if (d2 < nd) { nd = d2; nxt = e; }
+              }
+              cur = nxt;
+            }
+          }
+        }
+      }
+      if (state !== "playing") return;
+      // ===== 自动开火 =====
+      fireT -= dt;
+      if (fireT <= 0 && enemies.length) {
+        let tgt = null, td = run.range;
+        for (const e of enemies) {
+          const d2 = Math.hypot(e.x - p.x, e.y - p.y);
+          if (d2 < td) { td = d2; tgt = e; }
+        }
+        if (tgt) {
+          fireT = run.cd;
+          const baseA = Math.atan2(tgt.y - p.y, tgt.x - p.x);
+          const n = run.multi, gap = 14;
+          const px = -Math.sin(baseA), py = Math.cos(baseA);
+          for (let k = 0; k < n; k++) {
+            const g = (k - (n - 1) / 2) * gap;
+            bullets.push({
+              x: p.x + px * g, y: p.y + py * g,
+              vx: Math.cos(baseA) * 560 * run.bspd, vy: Math.sin(baseA) * 560 * run.bspd,
+              life: 1.15, dmg: st.dmg * run.dmgMul, pierce: run.pierce, hit: []
+            });
+          }
+          sShoot();
+        }
+      }
+      // ===== 子弹（命中→爆炸） =====
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+        let dead = b.life <= 0;
+        if (!dead) for (let j = enemies.length - 1; j >= 0; j--) {
+          const e = enemies[j];
+          if (!b.hit.includes(e) && Math.hypot(e.x - b.x, e.y - b.y) < e.r + 5) {
+            e.hp -= b.dmg; b.hit.push(e); sHit();
+            for (let k = 0; k < 5; k++) {
+              const a = rnd(0, 6.28);
+              particles.push({
+                x: b.x, y: b.y, vx: Math.cos(a) * rnd(30, 120), vy: Math.sin(a) * rnd(30, 120),
+                life: rnd(.2, .4), c: "#fc6", r: rnd(1, 2)
+              });
+            }
+            if (e.hp <= 0) killEnemy(j);
+            if (run.boom > 0) {
+              doBoom(b.x, b.y, run.boom, b.dmg * 2.2 + run.boomLvl * 3 * run.dmgMul, false, "#fa5"); sBoom();
+            }
+            if (b.pierce > 0) b.pierce--; else { dead = true; break; }
+          }
+        }
+        if (dead) bullets.splice(i, 1);
+      }
+      // ===== 爆炸/冲击波结算 =====
+      for (let i = booms.length - 1; i >= 0; i--) {
+        const bm = booms[i];
+        bm.life -= dt;
+        if (!bm.done) {
+          bm.done = true;
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            const e = enemies[j];
+            const d = Math.hypot(e.x - bm.x, e.y - bm.y);
+            if (d < bm.r + e.r) {
+              e.hp -= bm.dmg;
+              if (bm.nova) {
+                const kx = (e.x - bm.x) / (d || 1), ky = (e.y - bm.y) / (d || 1);
+                e.vx += kx * 420; e.vy += ky * 420;
+              }
+              if (e.hp <= 0) killEnemy(j);
+            }
+          }
+        }
+        if (bm.life <= 0) booms.splice(i, 1);
+      }
+      if (state !== "playing") return;
+      // 敌方弹幕
+      for (let i = ebullets.length - 1; i >= 0; i--) {
+        const b = ebullets[i];
+        b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+        if (b.life <= 0) { ebullets.splice(i, 1); continue; }
+        if (Math.hypot(b.x - p.x, b.y - p.y) < p.r + 4) {
+          ebullets.splice(i, 1); hurt(1);
+          if (state !== "playing") return;
+        }
+      }
+      // 经验晶体：无状态追踪（对象池，绝不绕圈）
+      for (let i = orbs.length - 1; i >= 0; i--) {
+        const o = orbs[i];
+        o.age += dt;
+        const dx = p.x - o.x, dy = p.y - o.y, dist = Math.hypot(dx, dy) || 1;
+        // 速度直接指向玩家：远=瞬移般冲过来，近=收尾减速，0.5秒内必达
+        const spd = Math.min(2200, Math.max(500, dist * 2.2));
+        o.x += dx / dist * spd * dt;
+        o.y += dy / dist * spd * dt;
+        if (dist < 26) {
+          orbs[i] = orbs[orbs.length - 1]; orbs.pop(); orbPool.push(o);
+          xp++; sOrb();
+          if (xp >= xpNeed) {
+            xp = 0; level++; xpNeed = 3 + level * 2;
+            run.cd *= 0.965; run.dmgMul += 0.12;
+            fuel = Math.min(fuelMax, fuel + fuelMax * 0.25);
+            sLevel(); showLevelUp(); return;
+          }
+        }
+      }
+
+      // 裂隙
+      if (portal) {
+        portal.rot += dt * 2;
+        if (Math.hypot(portal.x - p.x, portal.y - p.y) < 45) {
+          depth++; portal = null; sDepth(); shake = 10;
+          fuel = Math.min(fuelMax, fuel + fuelMax * .4);
+          if (holes.length < 6) spawnHole();
+          spawnElite();
+          texts.push({ x: p.x, y: p.y - 50, txt: "⬇ 深度 " + depth + "　收益×" + dustMult().toFixed(1), life: 1.8, c: "#5ff" });
+        }
+      }
+      // 碎片
+      for (let i = fragments.length - 1; i >= 0; i--) {
+        const f = fragments[i];
+        if (Math.hypot(f.x - p.x, f.y - p.y) < 26) {
+          fragments.splice(i, 1);
+          const gain = f.risky ? 3 : 1;
+          score += gain; dustRun += f.risky ? (3 + st.plunder) : 1;
+          fuel = Math.min(fuelMax, fuel + 30 * (f.risky ? 1.5 : 1));
+          sCollect(); shake = Math.max(shake, 3);
+          texts.push({ x: f.x, y: f.y, txt: "+" + gain, life: .8, c: f.risky ? "#fc6" : "#0ff" });
+          fragCount++;
+          if (fragCount % 10 === 0 && !portal) spawnPortal();
+          spawnAny();
+        }
+      }
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const q = particles[i];
+        q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt; if (q.life <= 0) particles.splice(i, 1);
+      }
+      for (let i = bolts.length - 1; i >= 0; i--) { bolts[i].life -= dt; if (bolts[i].life <= 0) bolts.splice(i, 1); }
+      for (let i = texts.length - 1; i >= 0; i--) {
+        const q = texts[i];
+        q.y -= 30 * dt; q.life -= dt; if (q.life <= 0) texts.splice(i, 1);
+      }
+      camX += ((p.x - CW / 2) - camX) * Math.min(1, dt * 5);
+      camY += ((p.y - CH / 2) - camY) * Math.min(1, dt * 5);
+      camX = Math.max(0, Math.min(W - CW, camX)); camY = Math.max(0, Math.min(H - CH, camY));
+    }
+
+    // ===== 绘制 =====
+    function draw(t) {
+      const sx = shake ? rnd(-shake, shake) : 0, sy = shake ? rnd(-shake, shake) : 0;
+      ctx.fillStyle = "#05060f"; ctx.fillRect(0, 0, CW, CH);
+      for (const s of stars) {
+        const x = ((s.x - camX * s.l) % (CW * 2) + CW * 2) % (CW * 2), y = ((s.y - camY * s.l) % (CH * 2) + CH * 2) % (CH * 2);
+        if (x < CW && y < CH) { ctx.globalAlpha = s.l; ctx.fillStyle = "#aac"; ctx.fillRect(x, y, s.s, s.s); }
+      }
+      ctx.globalAlpha = 1;
+      ctx.save(); ctx.translate(-camX + sx, -camY + sy);
+      for (const h of holes) {
+        const g = ctx.createRadialGradient(h.x, h.y, h.core, h.x, h.y, h.pull);
+        g.addColorStop(0, "rgba(140,60,255,.35)"); g.addColorStop(1, "rgba(140,60,255,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, h.pull, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = "rgba(255,200,100,.22)"; ctx.lineWidth = 2; ctx.setLineDash([4, 10]);
+        ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 130, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(255,80,80,.35)"; ctx.lineWidth = 1.5; ctx.setLineDash([3, 7]);
+        ctx.beginPath(); ctx.arc(h.x, h.y, h.core + 30, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(160,80,255,.5)"; ctx.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.ellipse(h.x, h.y, h.core + 14 + i * 14, (h.core + 14 + i * 14) * .45, h.rot + i, 0, 6.29); ctx.stroke();
+        }
+        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(h.x, h.y, h.core, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = "#a5f"; ctx.lineWidth = 2; ctx.stroke();
+      }
+      if (portal) {
+        const q = portal, pu = 1 + Math.sin(t * .005) * .15;
+        const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, 55 * pu);
+        g.addColorStop(0, "rgba(0,255,255,.5)"); g.addColorStop(1, "rgba(0,255,255,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q.x, q.y, 55 * pu, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = "#5ff"; ctx.lineWidth = 2.5;
+        for (let i = 0; i < 2; i++) {
+          ctx.beginPath();
+          ctx.arc(q.x, q.y, (30 + i * 10) * pu, q.rot + i * 2, q.rot + i * 2 + 4.4); ctx.stroke();
+        }
+      }
+      for (const f of fragments) {
+        const pu = 1 + Math.sin(t * .004 + f.ph) * .25, s = (f.risky ? 11 : 9) * pu;
+        const col = f.risky ? "252,200,90" : "0,255,255";
+        const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, s * 3);
+        g.addColorStop(0, "rgba(" + col + ",.9)"); g.addColorStop(1, "rgba(" + col + ",0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, s * 3, 0, 6.29); ctx.fill();
+        ctx.fillStyle = f.risky ? "#fda" : "#cff"; ctx.beginPath();
+        ctx.moveTo(f.x, f.y - s); ctx.lineTo(f.x + s, f.y); ctx.lineTo(f.x, f.y + s); ctx.lineTo(f.x - s, f.y);
+        ctx.closePath(); ctx.fill();
+      }
+      for (const o of orbs) {
+        const s = 5 + Math.sin(t * .006 + o.ph) * 1.5;
+        ctx.fillStyle = "#5f5"; ctx.beginPath();
+        ctx.moveTo(o.x, o.y - s); ctx.lineTo(o.x + s, o.y); ctx.lineTo(o.x, o.y + s); ctx.lineTo(o.x - s, o.y);
+        ctx.closePath(); ctx.fill();
+      }
+      for (const b of bullets) {
+        ctx.strokeStyle = "#fc6"; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x - b.vx * .02, b.y - b.vy * .02); ctx.stroke();
+      }
+      for (const b of ebullets) {
+        ctx.fillStyle = "#faa";
+        ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = "#f55"; ctx.lineWidth = 1; ctx.stroke();
+      }
+      // 爆炸/冲击波光圈
+      for (const bm of booms) {
+        const k = 1 - bm.life / bm.max;
+        ctx.globalAlpha = (1 - k) * .7;
+        ctx.strokeStyle = bm.c; ctx.lineWidth = bm.nova ? 4 : 3;
+        ctx.beginPath(); ctx.arc(bm.x, bm.y, bm.r * k, 0, 6.29); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // 闪电
+      for (const b of bolts) {
+        ctx.globalAlpha = b.life / .18;
+        ctx.strokeStyle = "#5ff"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(b.x1, b.y1);
+        const seg = 4;
+        for (let k = 1; k <= seg; k++) {
+          const mx = b.x1 + (b.x2 - b.x1) * k / seg + (k < seg ? rnd(-10, 10) : 0);
+          const my = b.y1 + (b.y2 - b.y1) * k / seg + (k < seg ? rnd(-10, 10) : 0);
+          ctx.lineTo(mx, my);
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // 敌人
+      for (const e of enemies) {
+        if (e.elite) {
+          const g = ctx.createRadialGradient(e.x, e.y, e.r, e.x, e.y, e.r * 2.2);
+          g.addColorStop(0, "rgba(255,0,255,.4)"); g.addColorStop(1, "rgba(255,0,255,0)");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 2.2, 0, 6.29); ctx.fill();
+        }
+        ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.rot);
+        ctx.fillStyle = e.col; ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < e.shape; i++) {
+          const a = i / e.shape * 6.28;
+          const rr = e.shape === 3 ? e.r * 1.2 : e.r;
+          i ? ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        if (e.elite) {
+          ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace"; ctx.textAlign = "center";
+          ctx.fillText("★", 0, 4);
+        }
+        ctx.restore();
+        if (e.hp < e.maxHp) {
+          ctx.fillStyle = "#400"; ctx.fillRect(e.x - 14, e.y - e.r - 8, 28, 3);
+          ctx.fillStyle = "#f55"; ctx.fillRect(e.x - 14, e.y - e.r - 8, 28 * e.hp / e.maxHp, 3);
+        }
+      }
+      for (const q of particles) {
+        ctx.globalAlpha = Math.min(1, q.life * 2);
+        ctx.fillStyle = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.29); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      if (state === "playing" || state === "levelup") {
+        const p = player;
+        for (const q of trail) {
+          ctx.globalAlpha = q.life * 1.8; ctx.fillStyle = "#089";
+          ctx.beginPath(); ctx.arc(q.x, q.y, 3 * q.life / .4, 0, 6.29); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        if (invuln > 0 && Math.floor(t / 60) % 2) ctx.globalAlpha = .4;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
+        ctx.fillStyle = "#d94"; ctx.strokeStyle = "#fa5"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); p.verts.forEach((v, i) => {
+          const x = Math.cos(v.a) * v.d, y = Math.sin(v.a) * v.d;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+        ctx.globalAlpha = 1;
+        if (shieldUp) {
+          ctx.strokeStyle = "rgba(0,255,255," + (.5 + Math.sin(t * .006) * .3) + ")";
+          ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, 6.29); ctx.stroke();
+        }
+        if (holding && fuel > 0) {
+          ctx.strokeStyle = "rgba(0,200,255,.35)"; ctx.setLineDash([6, 8]);
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+      for (const q of texts) {
+        ctx.globalAlpha = Math.min(1, q.life);
+        ctx.fillStyle = q.c; ctx.font = (q.big ? "bold 18px" : "14px") + " monospace"; ctx.textAlign = "center";
+        ctx.fillText(q.txt, q.x, q.y);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+      ctx.strokeStyle = "rgba(80,120,200,.3)"; ctx.lineWidth = 3;
+      ctx.strokeRect(-camX + sx, -camY + sy, W, H);
+    }
+
+    // ===== 主循环 =====
+    let last = performance.now();
+    function loop(t) {
+      const dt = Math.min(.033, (t - last) / 1000); last = t;
+      if (state === "playing") update(dt);
+      shake = Math.max(0, shake - dt * 30);
+      draw(t);
+      const m = Math.min(RUN_LEN, elapsed), mm = String(Math.floor(m / 60)).padStart(2, "0"),
+        ss = String(Math.floor(m % 60)).padStart(2, "0");
+      $("timer").textContent = mm + ":" + ss;
+      $("score").textContent = score;
+      $("depth").textContent = depth;
+      $("kills").textContent = kills;
+      $("fuelFill").style.width = (fuel / fuelMax * 100) + "%";
+      $("hpFill").style.width = (Math.max(0, hp) / maxHp * 100) + "%";
+      $("xpFill").style.width = (xp / xpNeed * 100) + "%";
+      $("dustRun").textContent = dustRun;
+      $("dustMult").textContent = dustMult().toFixed(1);
+      $("lv").textContent = level;
+      requestAnimationFrame(loop);
+    }
+    $("best").textContent = (best ? ("最高纪录 " + best + " ｜ ") : "") + (bestDepth > 1 ? ("最深 " + bestDepth + "层") : "");
+    reset(); state = "title";
+    showTitle();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+
+</html>
