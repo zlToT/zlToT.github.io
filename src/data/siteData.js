@@ -7,14 +7,14 @@
 export const games = [
   {
     name: '幸存者·脉冲',
-    desc: '几何幸存者，三武器十四技能六被动，多地图多难度三阶段Boss，局外强化养成',
+    desc: '几何幸存者割草，三武器十四技能六被动，多地图多难度三阶段Boss，局外强化养成',
     link: 'https://zltot.github.io/survivor-pulse/',
     icon: 'pulse',
     tag: '割草',
   },
   {
     name: '煤与泪',
-    desc: '像素地牢射击，致敬以撒：15层楼一路往下打，多 Boss、道具商店、三槽存档',
+    desc: '像素地牢射击，你扮演煤灰世界的「阿灰」，从 B1 一路往下打，直到 B15 的无名。',
     link: 'https://zltot.github.io/soot-and-tears/',
     icon: 'soot',
     tag: 'Roguelike',
