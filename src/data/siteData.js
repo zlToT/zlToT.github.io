@@ -6,6 +6,13 @@
 // 游戏列表（新增游戏：1. 把静态文件放入 games/ 目录；2. 在此数组加一条）
 export const games = [
   {
+    name: '幸存者·脉冲',
+    desc: '几何幸存者，三武器十四技能六被动，多地图多难度三阶段Boss，局外强化养成',
+    link: 'https://zltot.github.io/survivor-pulse/',
+    icon: 'pulse',
+    tag: '割草',
+  },
+  {
     name: '煤与泪',
     desc: '像素地牢射击，致敬以撒：15层楼一路往下打，多 Boss、道具商店、三槽存档',
     link: 'https://zltot.github.io/soot-and-tears/',
@@ -25,13 +32,6 @@ export const games = [
     link: './games/gravity_well.html',
     icon: 'gwell',
     tag: '太空',
-  },
-  {
-    name: '引力井·歼灭',
-    desc: '黑洞引力场里的 10 分钟幸存者：自动开火、升级三选一拼 AOE build，深度越刷收益越高',
-    link: './games/gravity_well_shot.html',
-    icon: 'gwells',
-    tag: '割草',
   },
   {
     name: '拼消块',
