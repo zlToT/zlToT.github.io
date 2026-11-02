@@ -114,6 +114,13 @@ export const labs = [
     icon: 'city',
     tag: '程序化生成',
   },
+  {
+    name: '视频渲染',
+    desc: 'Manim / ffmpeg / Remotion 渲染产物合集：数学动画、特效短片与合成视频',
+    link: './labs/video-gallery/index.html',
+    icon: 'video',
+    tag: '视频渲染',
+  },
 ]
 
 // 收藏网站分类（分类 key 与站点记录的 category 对应）
