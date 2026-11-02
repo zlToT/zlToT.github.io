@@ -29,7 +29,7 @@ export const games = [
   {
     name: '引力井',
     desc: '按住牵引飞船滑行，绕黑洞捡碎片赚星尘，擦边引力弹弓加速，局外升级基地',
-    link: './games/gravity_well.html',
+    link: './games/gravity-well.html',
     icon: 'gwell',
     tag: '太空',
   },
@@ -87,11 +87,32 @@ export const games = [
 // 收藏表（非游戏类的互动项目：新增项目在此数组加一条）
 export const labs = [
   {
+    name: '图片压缩',
+    desc: '浏览器本地图片压缩：调整质量和尺寸，批量导出，全程不出本地',
+    link: './labs/image-squeeze.html',
+    icon: 'squeeze',
+    tag: '图像处理',
+  },
+  {
+    name: '一键去背景',
+    desc: '浏览器本地跑的 AI 抠图工具：上传图片自动移除背景，全程不出本地，隐私安全',
+    link: './labs/background-removal.html',
+    icon: 'cutout',
+    tag: '图像处理',
+  },
+  {
     name: 'BeatHaus',
     desc: '某不知名网页版 LiveHouse 演唱会模拟器：双唱盘搓碟、混音台、3D 演唱会舞台，音频实时驱动灯光、粒子与气球',
     link: 'https://zlToT.github.io/beathaus/',
     icon: 'beathaus',
     tag: '音乐互动',
+  },
+  {
+    name: '雾都山城',
+    desc: '重庆程序化城市生成器：依山就势的立体建筑、穿楼轻轨与两江雾气，查看属于你的 8D 魔幻城市',
+    link: './labs/fog-city.html',
+    icon: 'city',
+    tag: '程序化生成',
   },
 ]
 
@@ -325,15 +346,9 @@ export const sites = [
 
   // ── 效率工具 ──
   {
-    name: 'TinyPNG',
-    desc: '图片无损压缩，网页图片瘦身神器',
-    link: 'https://tinypng.com',
-    category: 'tool',
-  },
-  {
-    name: '菜鸟工具',
-    desc: '在线小工具合集，编码转换计算',
-    link: 'https://www.jyshare.com/',
+    name: 'GeekFormat',
+    desc: '综合在线工具箱，提供200+免费工具，支持PDF、图片、JSON处理，数据本地处理',
+    link: 'https://geekformat.com/zh-TW/',
     category: 'tool',
   },
   {
@@ -343,15 +358,21 @@ export const sites = [
     category: 'tool',
   },
   {
-    name: 'GeekFormat',
-    desc: '综合在线工具箱，提供200+免费工具，支持PDF、图片、JSON处理，数据本地处理',
-    link: 'https://geekformat.com/zh-TW/',
-    category: 'tool',
-  },
-  {
     name: '在线工具',
     desc: '程序员常用在线工具集合',
     link: 'https://tool.lu/',
+    category: 'tool',
+  },
+  {
+    name: '菜鸟工具',
+    desc: '在线小工具合集，编码转换计算',
+    link: 'https://www.jyshare.com/',
+    category: 'tool',
+  },
+  {
+    name: 'TinyPNG',
+    desc: '图片无损压缩，网页图片瘦身神器',
+    link: 'https://tinypng.com',
     category: 'tool',
   },
   {

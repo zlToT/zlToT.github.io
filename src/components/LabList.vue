@@ -3,7 +3,7 @@ import { labs } from '../data/siteData.js'
 import BgEffect from './BgEffect.vue'
 
 // 实验室项目图标（对应 l.icon）
-const labEmoji = { beathaus: '🎛️' }
+const labEmoji = { beathaus: '🎛️', city: '🌫️', cutout: '✂️', squeeze: '🗜️' }
 </script>
 
 <template>
@@ -137,6 +137,18 @@ const labEmoji = { beathaus: '🎛️' }
 
 .tone-beathaus {
   background: linear-gradient(135deg, #a78bfa, #38bdf8);
+}
+
+.tone-city {
+  background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+}
+
+.tone-cutout {
+  background: linear-gradient(135deg, #f472b6, #a78bfa);
+}
+
+.tone-squeeze {
+  background: linear-gradient(135deg, #fb923c, #f43f5e);
 }
 
 .lab-body {

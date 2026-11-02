@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片压缩工具</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+  <!-- ========== 可选增强库（离线时自动降级，不影响核心功能） ========== -->
+  <!-- browser-image-compression：Web Worker 多线程压缩 -->
+  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+  <!-- pako + UPNG：PNG 调色板量化（类 TinyPNG 的有损 PNG 压缩） -->
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+  <script src="https://unpkg.com/upng-js@2.1.0/UPNG.js"></script>
+  <!-- fflate：ZIP 打包下载 -->
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+
+  <style>
+    :root {
+      --primary: #2eccb0;
+      --primary-dark: #24b396;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #2d3a45;
+      --muted: #8a97a3;
+      --danger: #e74c3c;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+    }
+
+    header {
+      text-align: center;
+      padding: 28px 0 20px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      letter-spacing: 1px;
+    }
+
+    header h1 span {
+      color: var(--primary);
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    /* 拖拽区 */
+    #dropzone {
+      border: 3px dashed #b9c6d0;
+      border-radius: var(--radius);
+      background: var(--card);
+      padding: 48px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    #dropzone.dragover {
+      border-color: var(--primary);
+      background: #ecfaf7;
+      transform: scale(1.01);
+    }
+
+    #dropzone .icon {
+      font-size: 44px;
+    }
+
+    #dropzone .title {
+      font-size: 18px;
+      margin: 12px 0 6px;
+      font-weight: 600;
+    }
+
+    #dropzone .btn {
+      margin-top: 16px;
+    }
+
+    #dropzone .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 14px;
+      line-height: 1.7;
+    }
+
+    .btn {
+      display: inline-block;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 12px 32px;
+      transition: background .2s;
+    }
+
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn:disabled {
+      background: #b5d9d0;
+      cursor: not-allowed;
+    }
+
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 13px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #d7dfe5;
+    }
+
+    .btn-ghost:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+      background: #fff5f4;
+    }
+
+    /* 选项面板 */
+    .options {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    .opt-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .opt-label {
+      font-weight: 600;
+      min-width: 76px;
+    }
+
+    .seg {
+      display: flex;
+      border: 1px solid #d7dfe5;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .seg button {
+      border: none;
+      background: #fff;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      border-right: 1px solid #d7dfe5;
+      color: var(--text);
+    }
+
+    .seg button:last-child {
+      border-right: none;
+    }
+
+    .seg button.active {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      min-width: 160px;
+      accent-color: var(--primary);
+    }
+
+    #qVal {
+      min-width: 40px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    select,
+    input[type="number"] {
+      padding: 8px 10px;
+      border: 1px solid #d7dfe5;
+      border-radius: 8px;
+      font-size: 13px;
+      background: #fff;
+    }
+
+    details {
+      margin-top: 8px;
+    }
+
+    details summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .checkbox-label input {
+      accent-color: var(--primary);
+      width: 16px;
+      height: 16px;
+    }
+
+    /* 总进度 */
+    #progressWrap {
+      display: none;
+      margin-top: 16px;
+    }
+
+    #progressWrap.show {
+      display: block;
+    }
+
+    #progressTrack {
+      background: #e2e8ec;
+      border-radius: 99px;
+      height: 10px;
+      overflow: hidden;
+    }
+
+    #progressBar {
+      background: linear-gradient(90deg, var(--primary), #4fd8be);
+      height: 100%;
+      width: 0;
+      transition: width .25s;
+    }
+
+    #progressText {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    /* 统计栏 */
+    #stats {
+      display: none;
+      background: #e9faf5;
+      border: 1px solid #bdeadd;
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      margin-top: 16px;
+      font-size: 14px;
+      flex-wrap: wrap;
+      gap: 6px 24px;
+      align-items: center;
+    }
+
+    #stats.show {
+      display: flex;
+    }
+
+    #stats b {
+      color: var(--primary-dark);
+    }
+
+    /* 文件列表 */
+    #list {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+    }
+
+    .card img.thumb {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 0 0/16px 16px;
+      flex-shrink: 0;
+    }
+
+    .card .info {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .card .name {
+      font-weight: 600;
+      font-size: 14px;
+      word-break: break-all;
+    }
+
+    .card .size {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .card .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e6f9f2;
+      color: #16a37c;
+      font-weight: 700;
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+
+    .badge.none {
+      background: #f0f2f4;
+      color: var(--muted);
+    }
+
+    .badge.bigger {
+      background: #fdeeea;
+      color: var(--danger);
+    }
+
+    .status {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #cfe9e2;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: -2px;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 底部操作 */
+    #bottomBar {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    #bottomBar.show {
+      display: block;
+    }
+
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 32px;
+      transform: translateX(-50%) translateY(20px);
+      background: #2d3a45;
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all .3s;
+      z-index: 99;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 48px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 560px) {
+      header h1 {
+        font-size: 22px;
+      }
+
+      #dropzone {
+        padding: 32px 14px;
+      }
+
+      .opt-label {
+        min-width: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>图片压缩 <span>工具</span></h1>
+      <p>支持 JPG / PNG / WebP / GIF / BMP / AVIF · 批量处理 · 免费无限制</p>
+    </header>
+
+    <!-- 拖拽区 -->
+    <div id="dropzone">
+      <div class="icon">🖼️</div>
+      <div class="title">拖入图片，或点击选择</div>
+      <div>支持多选，单次最多 50 张</div>
+      <button class="btn" id="pickBtn" type="button">选择图片</button>
+      <div class="hint">
+        所有处理都在你的浏览器完成，图片不会上传到任何服务器。<br>
+        提示：也可以直接 Ctrl/Cmd + V 粘贴图片；单张超过 50MB 可能处理较慢。
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+
+    <!-- 压缩选项 -->
+    <div class="options">
+      <div class="opt-row">
+        <span class="opt-label">压缩精度</span>
+        <div class="seg" id="presetSeg">
+          <button data-q="0.85" type="button">轻度</button>
+          <button data-q="0.70" type="button" class="active">推荐</button>
+          <button data-q="0.45" type="button">极限</button>
+        </div>
+        <input type="range" id="qualityRange" min="10" max="100" value="70">
+        <span id="qVal">70</span>
+      </div>
+      <div class="opt-row">
+        <span class="opt-label">输出格式</span>
+        <select id="formatSel">
+          <option value="keep">保持原格式</option>
+          <option value="image/webp">统一转为 WebP（推荐）</option>
+          <option value="image/png">统一转为 PNG</option>
+          <option value="image/jpeg">统一转为 JPEG</option>
+        </select>
+      </div>
+      <details>
+        <summary>高级选项</summary>
+        <div class="opt-row">
+          <span class="opt-label">最大边长</span>
+          <select id="maxEdgeSel">
+            <option value="0">不限制</option>
+            <option value="3840">3840 px</option>
+            <option value="1920">1920 px</option>
+            <option value="1280">1280 px</option>
+            <option value="custom">自定义…</option>
+          </select>
+          <input type="number" id="maxEdgeCustom" min="16" max="10000" placeholder="如 1024"
+            style="display:none; width:110px;">
+        </div>
+        <div class="opt-row">
+          <label class="checkbox-label"><input type="checkbox" id="stripExif" checked> 去除 EXIF 元数据（重绘编码天然去除）</label>
+        </div>
+        <div class="opt-row">
+          <label class="checkbox-label"><input type="checkbox" id="fallbackChk" checked> 压缩后体积反而变大时，保留原文件</label>
+        </div>
+        <div class="opt-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="pngLossless"> PNG 强制无损（不量化，忽略质量滑块）
+          </label>
+        </div>
+      </details>
+    </div>
+
+    <!-- 总进度 -->
+    <div id="progressWrap">
+      <div id="progressTrack">
+        <div id="progressBar"></div>
+      </div>
+      <div id="progressText"></div>
+    </div>
+
+    <!-- 统计栏 -->
+    <div id="stats"></div>
+
+    <!-- 文件列表 -->
+    <div id="list"></div>
+    <div id="emptyState" class="status" style="text-align:center; margin-top:24px; display:none;">
+      还没有可处理的图片
+    </div>
+
+    <!-- 底部操作 -->
+    <div id="bottomBar">
+      <button class="btn" id="downloadAllBtn" type="button">⬇ 下载全部（ZIP）</button>
+      <button class="btn btn-ghost" id="clearBtn" type="button" style="margin-left:12px;">清空列表</button>
+    </div>
+
+    <footer>
+      🔒 100% 本地处理 · 图片永不离开你的设备 · 关闭网络也可正常使用<br>
+      压缩引擎：Canvas 编码 + Web Worker 多线程 + PNG 调色板量化
+    </footer>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    /* =====================================================================
+     *  compress.ts —— 核心压缩逻辑（Vite 版中单独拆出为 src/compress.ts）
+     * ===================================================================== */
+
+    /** 检测浏览器是否支持 WebP 编码（Safari 旧版不支持，降级 JPEG） */
+    const WEBP_OK = (() => {
+      try {
+        return document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') === 0;
+      } catch { return false; }
+    })();
+
+    /** 格式化字节为可读字符串 */
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1024 / 1024).toFixed(2) + ' MB';
+    }
+
+    /**
+     * 解码图片为位图。
+     * 优先 createImageBitmap（快、且 imageOrientation 自动纠正手机竖拍 EXIF 方向），
+     * 失败则降级为 <img> + ObjectURL。
+     */
+    async function decodeImage(file) {
+      if ('createImageBitmap' in window) {
+        try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { /* 继续降级 */ }
+      }
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('无法解码该图片格式')); };
+        img.src = url;
+      });
+    }
+
+    /** 绘制到 Canvas（支持按最大边长等比缩放） */
+    function drawToCanvas(bmp, maxEdge) {
+      let w = bmp.width, h = bmp.height;
+      const m = Math.max(w, h);
+      if (maxEdge > 0 && m > maxEdge) {
+        const s = maxEdge / m;
+        w = Math.round(w * s); h = Math.round(h * s);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      return { canvas, ctx, w, h };
+    }
+
+    /** 根据用户选择的输出格式，决定每张图的目标 MIME */
+    function pickMime(file, outputFormat) {
+      if (outputFormat === 'image/png') return 'image/png';   // ← 新增
+      if (outputFormat === 'image/jpeg') return 'image/jpeg';
+      if (outputFormat === 'image/webp') return WEBP_OK ? 'image/webp' : 'image/jpeg';
+      const t = file.type;
+      if (t === 'image/png' || t === 'image/gif') return 'image/png';
+      if (t === 'image/webp') return WEBP_OK ? 'image/webp' : 'image/jpeg';
+      if (t === 'image/avif') return WEBP_OK ? 'image/webp' : 'image/jpeg';
+      return 'image/jpeg';
+    }
+
+    /** 压缩质量 → PNG 调色板色数（模拟 TinyPNG 的分级量化策略） */
+    function pngColors(q) {
+      return q >= 0.8 ? 256 : q >= 0.6 ? 128 : q >= 0.45 ? 64 : 32;
+    }
+
+    /* ---------- 三条并行压缩流水线（多工具取最小体积） ---------- */
+
+    /** 流水线 1：browser-image-compression（内部走 Web Worker，不阻塞主线程） */
+    async function toolLib(file, opt) {
+      if (typeof imageCompression === 'undefined') throw new Error('lib-unavailable');
+      return await imageCompression(file, {
+        maxSizeMB: 1e6,                      // 不按体积截断，只按质量压缩
+        initialQuality: opt.quality,
+        fileType: opt.mime,
+        useWebWorker: true,
+        maxWidthOrHeight: opt.maxEdge > 0 ? opt.maxEdge : undefined,
+        onProgress: () => { }
+      });
+    }
+
+    /** 流水线 2：纯 Canvas 重绘 + toBlob 编码（零依赖降级方案） */
+    async function toolCanvas(file, opt) {
+      const bmp = await decodeImage(file);
+      const { canvas, ctx, w, h } = drawToCanvas(bmp, opt.maxEdge);
+      if (opt.mime === 'image/jpeg') {       // JPEG 无透明通道，先垫白底再绘制
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.drawImage(bmp, 0, 0, w, h);
+      const blob = await new Promise((res, rej) =>
+        canvas.toBlob(b => b ? res(b) : rej(new Error('Canvas 编码失败')), opt.mime, opt.quality)
+      );
+      canvas.width = canvas.height = 0;      // 主动释放，防止大图内存泄漏
+      return blob;
+    }
+
+    /** 流水线 3：PNG 调色板量化（UPNG 有损压缩，完整保留透明通道） */
+    async function toolPngQuant(file, opt) {
+      if (typeof UPNG === 'undefined' || typeof pako === 'undefined') throw new Error('upng-unavailable');
+      const bmp = await decodeImage(file);
+      const { canvas, ctx, w, h } = drawToCanvas(bmp, opt.maxEdge);
+      ctx.drawImage(bmp, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const cnum = pngColors(opt.quality);
+      const pngBuf = UPNG.encode([imgData.data.buffer], w, h, cnum); // K-d 树量化
+      canvas.width = canvas.height = 0;
+      return new Blob([pngBuf], { type: 'image/png' });
+    }
+
+    /**
+     * 单张图片压缩主流程：
+     * 1. 确定目标格式 → 2. 并行运行多条压缩流水线 → 3. 取体积最小者
+     * → 4. 若反而变大且回退开启，保留原文件
+     */
+    async function compressFile(file, opt) {
+      const mime = pickMime(file, opt.outputFormat);
+      const isPngOut = mime === 'image/png';
+
+      // 组装并行任务
+      const tasks = [toolCanvas(file, { ...opt, mime }).then(b => ({ blob: b, tool: 'canvas' }))];
+      const pngLossless = $('#pngLossless').checked;
+      if (isPngOut && !pngLossless && pngColors(opt.quality) < 256) {
+        tasks.push(toolPngQuant(file, opt).then(b => ({ blob: b, tool: 'png-quant' })));
+      } else if (typeof imageCompression !== 'undefined') {
+        tasks.push(toolLib(file, { ...opt, mime }).then(b => ({ blob: b, tool: 'worker-lib' })));
+      }
+
+      const results = await Promise.allSettled(tasks);
+      let best = null;
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value.blob && (!best || r.value.blob.size < best.blob.size)) {
+          best = r.value;
+        }
+      }
+      if (!best) throw new Error('所有压缩方式均失败（图片可能已损坏）');
+
+      let fallback = false, blob = best.blob;
+      if (blob.size >= file.size && opt.fallback) {
+        blob = file; fallback = true;        // 回退为原文件
+      }
+
+      const ext = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
+      const base = file.name.replace(/\.[^.]+$/, '');
+      return {
+        blob, tool: best.tool, fallback,
+        name: base + '.' + ext,
+        outMime: mime
+      };
+    }
+
+    /* =====================================================================
+     *  main.ts —— UI 交互（Vite 版中单独拆出为 src/main.ts）
+     * ===================================================================== */
+
+    const $ = s => document.querySelector(s);
+    const dropzone = $('#dropzone'), fileInput = $('#fileInput'), listEl = $('#list');
+    const progressBar = $('#progressBar'), progressText = $('#progressText'), progressWrap = $('#progressWrap');
+    const statsEl = $('#stats'), bottomBar = $('#bottomBar'), emptyState = $('#emptyState');
+    const MAX_FILES = 50;
+    const ACCEPTED = /^image\/(jpeg|png|webp|gif|bmp|avif\+xml|avif)$/;
+
+    let items = [];          // { id, file, thumbUrl, status, result, error, note }
+    let uid = 0;
+    let processing = false;
+
+    /* ---------- 选项读取 ---------- */
+    function readOptions() {
+      let maxEdge = parseInt($('#maxEdgeSel').value, 10) || 0;
+      if ($('#maxEdgeSel').value === 'custom') maxEdge = parseInt($('#maxEdgeCustom').value, 10) || 0;
+      return {
+        quality: parseInt($('#qualityRange').value, 10) / 100,
+        outputFormat: $('#formatSel').value,
+        maxEdge,
+        stripExif: $('#stripExif').checked,
+        fallback: $('#fallbackChk').checked
+      };
+    }
+
+    /* ---------- 文件添加 ---------- */
+    function addFiles(fileList) {
+      const files = Array.from(fileList).filter(f => ACCEPTED.test(f.type));
+      const skipped = fileList.length - files.length;
+      if (skipped > 0) toast(`已跳过 ${skipped} 个不支持的文件`);
+      if (!files.length) return;
+
+      const remain = MAX_FILES - items.length;
+      if (files.length > remain) {
+        toast(`单次最多 ${MAX_FILES} 张，已截取前 ${remain} 张`);
+        files.length = remain;
+      }
+      for (const f of files) {
+        items.push({
+          id: ++uid, file: f,
+          thumbUrl: URL.createObjectURL(f),
+          status: 'pending', result: null, error: '',
+          note: f.size > 50 * 1024 * 1024 ? '文件较大，处理可能较慢' : ''
+        });
+      }
+      renderAll();
+    }
+
+    /* ---------- 渲染 ---------- */
+    function renderAll() {
+      listEl.innerHTML = '';
+      for (const item of items) listEl.appendChild(renderCard(item));
+      emptyState.style.display = items.length ? 'none' : 'block';
+
+      // 列表已空：隐藏并重置进度条（覆盖单张删除和清空两种情况）
+      if (items.length === 0 && !processing) {
+        progressBar.style.width = '0';
+        progressText.textContent = '';
+        progressWrap.classList.remove('show');
+      }
+
+      updateStats();
+    }
+
+
+    function renderCard(item) {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const img = document.createElement('img');
+      img.className = 'thumb'; img.src = item.thumbUrl; img.alt = '';
+      card.appendChild(img);
+
+      const info = document.createElement('div');
+      info.className = 'info';
+      let inner = `<div class="name">${escapeHtml(item.file.name)}`;
+      if (item.status === 'done') {
+        const saved = 1 - item.result.blob.size / item.file.size;
+        const pct = Math.round(saved * 100);
+        const cls = item.result.fallback ? 'badge none' : pct >= 0 ? '' : 'badge bigger';
+        const label = item.result.fallback ? '已保留原文件' : `-${pct}%`;
+        inner += `<span class="badge ${cls}">${label}</span>`;
+        inner += `</div><div class="size">${formatBytes(item.file.size)} → ${formatBytes(item.result.blob.size)}`;
+        inner += item.result.fallback ? '' : ` · ${escapeHtml(item.result.tool)}`;
+        inner += item.note ? ` · ⚠ ${item.note}` : '';
+        inner += `</div>`;
+      } else if (item.status === 'processing') {
+        inner += `</div><div class="size"><span class="spinner"></span>压缩中…</div>`;
+      } else if (item.status === 'error') {
+        inner += `</div><div class="status error">✕ ${escapeHtml(item.error)}</div>`;
+      } else {
+        inner += `</div><div class="size">${formatBytes(item.file.size)} · 等待压缩${item.note ? ` · ⚠ ${item.note}` : ''}</div>`;
+      }
+      info.innerHTML = inner;
+      card.appendChild(info);
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      if (item.status === 'done') {
+        const dl = document.createElement('button');
+        dl.className = 'btn btn-sm'; dl.textContent = '下载';
+        dl.onclick = () => downloadBlob(item.result.blob, item.result.name);
+        actions.appendChild(dl);
+      }
+      if (item.status !== 'processing') {
+        const del = document.createElement('button');
+        del.className = 'btn btn-sm btn-ghost'; del.textContent = '删除';
+        del.onclick = () => {
+          URL.revokeObjectURL(item.thumbUrl);
+          item.status = 'cancelled';          // 标记取消
+          items = items.filter(i => i !== item);
+          renderAll();
+        };
+        actions.appendChild(del);
+      }
+      card.appendChild(actions);
+      return card;
+    }
+
+    function updateItem(item) {
+      // 只重绘对应卡片（简化处理：全量重渲染，50 张内性能可接受）
+      renderAll();
+    }
+
+    function updateStats() {
+      const done = items.filter(i => i.status === 'done');
+      if (!done.length) { statsEl.classList.remove('show'); bottomBar.classList.toggle('show', false); return; }
+      const orig = done.reduce((s, i) => s + i.file.size, 0);
+      const comp = done.reduce((s, i) => s + i.result.blob.size, 0);
+      const saved = orig - comp;
+      const pct = orig ? Math.round(saved / orig * 100) : 0;
+      statsEl.innerHTML =
+        `<span>共 <b>${done.length}</b> 张</span>` +
+        `<span>原始 <b>${formatBytes(orig)}</b></span>` +
+        `<span>压缩后 <b>${formatBytes(comp)}</b></span>` +
+        `<span>共节省 <b>${formatBytes(Math.max(saved, 0))}（${Math.max(pct, 0)}%）</b></span>`;
+      statsEl.classList.add('show');
+      const allDone = done.length === items.length;
+      bottomBar.classList.toggle('show', allDone && !processing);
+      $('#downloadAllBtn').disabled = !allDone;
+    }
+
+    /* ---------- 压缩队列（3 路并发，不阻塞 UI） ---------- */
+    async function startCompress() {
+      if (processing) return;
+      const pending = items.filter(i => i.status === 'pending' || i.status === 'error');
+      if (!pending.length) { toast('没有待压缩的图片'); return; }
+      processing = true;
+      $('#pickBtn').disabled = true;
+      progressWrap.classList.add('show');
+      bottomBar.classList.remove('show');
+
+      const opt = readOptions();
+      const total = pending.length;
+      let finished = 0;
+      progressText.textContent = `0 / ${total}`;
+
+      // 简易并发池：3 个 worker 依次消费队列
+      const queue = [...pending];
+      await Promise.all(Array.from({ length: Math.min(3, queue.length) }, async () => {
+        while (queue.length) {
+          const item = queue.shift();
+          if (item.status === 'cancelled') continue;   // 已被用户删除，跳过
+          item.status = 'processing'; renderAll();
+          try {
+            item.result = await compressFile(item.file, opt);
+            item.status = 'done';
+          } catch (e) {
+            item.status = 'error';
+            item.error = e.message || '压缩失败';
+          }
+          finished++;
+          progressBar.style.width = (finished / total * 100) + '%';
+          progressText.textContent = `${finished} / ${total}`;
+          renderAll();
+        }
+      }));
+
+      processing = false;
+      $('#pickBtn').disabled = false;
+
+      // 完成 1.5 秒后平滑隐藏进度条
+      setTimeout(() => {
+        if (!processing) {
+          progressBar.style.width = '0';
+          progressText.textContent = '';
+          progressWrap.classList.remove('show');
+        }
+      }, 1500);
+
+      const okCount = items.filter(i => i.status === 'done').length;
+      const errCount = items.filter(i => i.status === 'error').length;
+      if (errCount) toast(`完成：${okCount} 张成功，${errCount} 张失败`);
+      renderAll();
+    }
+
+    /* ---------- 下载 ---------- */
+    function downloadBlob(blob, name) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    }
+
+    async function downloadAll() {
+      const done = items.filter(i => i.status === 'done');
+      if (!done.length) return;
+      if (typeof fflate === 'undefined') {
+        // 离线降级：逐张触发下载
+        toast('ZIP 组件不可用，将逐张下载');
+        done.forEach((item, i) => setTimeout(() => downloadBlob(item.result.blob, item.result.name), i * 300));
+        return;
+      }
+      toast('正在打包 ZIP…');
+      const files = {}, used = {};
+      const pendingBlobs = done.map(async item => {
+        let name = item.result.name;
+        if (used[name]) name = name.replace(/(\.[^.]+)$/, `_${++used[item.result.name]}$1`);
+        else used[item.result.name] = 0;
+        files[name] = new Uint8Array(await item.result.blob.arrayBuffer());
+      });
+      await Promise.all(pendingBlobs);
+      // 图片已是压缩产物，level:0 仅存储不二次压缩，打包更快
+      const zipped = fflate.zipSync(files, { level: 0 });
+      downloadBlob(new Blob([zipped], { type: 'application/zip' }), 'compressed-images.zip');
+    }
+
+    /* ---------- Toast 提示 ---------- */
+    let toastTimer;
+    function toast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    /* ---------- 事件绑定 ---------- */
+    // 文件选择 + 拖拽 + 粘贴 三入口
+    $('#pickBtn').addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+    ['dragover', 'dragenter'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); }));
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+    window.addEventListener('paste', e => {
+      if (e.clipboardData && e.clipboardData.files.length) addFiles(e.clipboardData.files);
+    });
+
+    // 质量预设 + 滑块联动
+    $('#presetSeg').addEventListener('click', e => {
+      const btn = e.target.closest('button'); if (!btn) return;
+      document.querySelectorAll('#presetSeg button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      $('#qualityRange').value = Math.round(parseFloat(btn.dataset.q) * 100);
+      $('#qVal').textContent = $('#qualityRange').value;
+    });
+    $('#qualityRange').addEventListener('input', e => {
+      $('#qVal').textContent = e.target.value;
+      document.querySelectorAll('#presetSeg button').forEach(b =>
+        b.classList.toggle('active', Math.round(parseFloat(b.dataset.q) * 100) === +e.target.value));
+    });
+
+    // 自定义边长输入框显隐
+    $('#maxEdgeSel').addEventListener('change', e => {
+      $('#maxEdgeCustom').style.display = e.target.value === 'custom' ? 'inline-block' : 'none';
+    });
+
+    // 拖入即自动开始压缩（可选：改为手动触发按钮）
+    let autoTimer;
+    dropzone.addEventListener('drop', () => { clearTimeout(autoTimer); autoTimer = setTimeout(startCompress, 100); });
+    fileInput.addEventListener('change', () => { clearTimeout(autoTimer); autoTimer = setTimeout(startCompress, 100); });
+    window.addEventListener('paste', () => { clearTimeout(autoTimer); autoTimer = setTimeout(startCompress, 100); });
+
+    $('#downloadAllBtn').addEventListener('click', downloadAll);
+    $('#clearBtn').addEventListener('click', () => {
+      items.forEach(i => URL.revokeObjectURL(i.thumbUrl));
+      items = [];
+      renderAll();   // 进度条重置已由 renderAll 内部处理
+    });
+
+  </script>
+</body>
+
+</html>

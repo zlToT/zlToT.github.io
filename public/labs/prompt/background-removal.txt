@@ -1,0 +1,72 @@
+帮我做一个纯前端的图片去背景工具
+
+【整体约束】
+1. 单个 HTML 文件，零构建、零后端、零框架，原生 HTML + CSS + JavaScript
+2. 所有图片处理在浏览器本地完成，图片不上传任何服务器
+3. 页面文案全部中文，UI 风格沿用我之前压缩工具的简洁卡片风：
+   拖拽区域带虚线边框和 hover 高亮，浅色背景，圆角卡片
+4. 必须使用 <script type="module">，因为要用 ESM import 语法
+
+【技术实现】
+1. 通过 jsDelivr CDN 以 ESM 方式引入 @imgly/background-removal@1.7.0：
+   import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm"
+   库会自动从 CDN 拉取 ISNet ONNX 模型（isnet_fp16，约 80MB）和 WASM 文件，
+   并自动选择推理后端：WebGPU → WebGL → WASM，无需我处理兼容
+2. 核心调用：
+   const blob = await removeBackground(file, {
+     model: 'medium',
+     output: { format: 'image/png' }
+   })
+   返回的 blob 是透明背景 PNG，用 URL.createObjectURL 生成预览地址
+
+【核心功能】
+1. 上传方式：支持拖拽上传 + 点击选择文件，支持 JPG / PNG / WebP，单张上限 20MB
+2. 上传后自动调用 removeBackground 开始处理
+3. 结果展示：
+   - 抠图结果用棋盘格背景展示（体现透明区域），棋盘格用 CSS
+     repeating-conic-gradient 或 background-image 两个 linear-gradient 实现
+   - 结果图下方提供两个按钮：「下载原图 PNG」和「换背景色」
+   - 换背景色：下拉框提供白 / 黑 / 自定义颜色选择器，选中后用 Canvas 合成
+     （把抠图结果画到 Canvas 上，再用 fillRect 填充背景色，然后导出）
+4. 前后对比滑块（重点，必须实现好）：
+   - 原图和抠图结果上下叠放在同一个容器里，中间一条竖直分割线
+   - 线的中间有圆形拖拽手柄，默认停在 50% 位置
+   - 拖动时：分割线左侧露出原图，右侧露出抠图结果，实时跟随
+   - 技术要求：
+     a. 用 Pointer Events（pointerdown / pointermove / pointerup），
+        不要用 mousedown / mouseup，也不要分开写 touch 事件
+        pointerdown 时调用 setPointerCapture 保证拖出容器也能继续跟踪
+     b. 图片裁切用 clip-path: inset(0 X% 0 0)，X 为分割线右侧的百分比
+        （inset 四个值是 top right bottom left，第二个值控制右侧裁掉多少）
+     c. 两张图都放在同一个容器，都用 object-fit: contain 或相同尺寸，
+        保证原图和抠图结果的宽高比一致，分割线左右能对齐
+     d. 拖动手柄的 cursor 用 ew-resize
+   - 抠图未完成前，对比滑块区域不显示，显示加载动画
+5. 支持对比滑块的键盘操作：手柄可聚焦，左右方向键微调（加 5 分项，可选）
+
+【加载进度与用户反馈】
+1. removeBackground 支持 progress 回调：
+   progress: (key, current, total) => { ... }
+   key 有四个阶段：download（下载模型）、load（加载模型）、
+   run（推理）、postprocess（后处理）
+2. 必须做一个分阶段进度条：
+   - 根据阶段切换提示文案：「正在下载模型 (xx MB，仅首次)」→
+     「正在加载模型」→「正在抠图」→「即将完成」
+   - 用 current/total 算百分比；total 为 0 时表示该阶段无进度信息，
+     显示不确定动画（比如来回滚动的进度条）
+3. 首次使用模型下载约 80MB，耗时较长，页面必须提前告知用户
+   「首次使用需下载模型，之后会缓存秒开」
+4. 推理在 CPU 上可能 5~15 秒，UI 文案要提示「时长取决于设备性能」
+5. 推理期间禁用上传按钮和拖拽区域，防止重复提交
+
+【错误处理】
+1. 上传前校验：非图片类型、超过 20MB 的文件，用 alert 或顶部提示条告知
+2. removeBackground 用 try/catch 包住，失败时：
+   - 显示「抠图失败，请重试」提示
+   - UI 复位，允许重新上传
+3. 模型下载失败（网络问题）时，提供「重试」按钮
+4. 所有 URL.createObjectURL 生成的地址，在重置时要 URL.revokeObjectURL 释放
+
+【交付要求】
+输出一个完整的、可直接双击打开运行的 index.html，代码内用中文注释
+说明关键逻辑（尤其是对比滑块的 clip-path 方向和 Pointer Events 部分）。
