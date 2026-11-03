@@ -5,9 +5,9 @@ import { games } from '../data/siteData'
 // 首页欢迎板块（占位文案，替换成你自己的介绍）
 // 网页游戏数量动态读 games 数组长度，新增游戏自动更新
 const stats = [
-  { value: '6', suffix: '年', label: '游戏开发' },
-  { value: '10+', suffix: '个', label: '游戏上线项目' },
-  { value: String(games.length), suffix: '个', label: '网页游戏' },
+  // { value: '6', suffix: '年', label: '游戏开发' },
+  // { value: '10+', suffix: '个', label: '参与游戏上线项目' },
+  // { value: String(games.length), suffix: '个', label: '网页游戏' },
   { value: '∞', suffix: '', label: '学习热情' },
 ]
 
